@@ -1,0 +1,1 @@
+{"timestamp":"2026-08-29T10:18:04","hostname":"auth-server-01","service":"sudo","severity":"WARNING","message":"Privilege escalation attempt detected","source_ip":null,"destination_ip":null,"event_type":"privilege_escalation"}

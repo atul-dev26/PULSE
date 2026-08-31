@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  ulpf:
+    build: .
+    container_name: ulpf-core
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./raw:/app/raw
+      - ./ulpf.db:/app/ulpf.db
+      - ./integrity/anchor_log.jsonl:/app/integrity/anchor_log.jsonl
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

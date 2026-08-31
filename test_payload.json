@@ -1,0 +1,102 @@
+[
+    {
+        "timestamp": "2026-08-29T10:14:22",
+        "hostname": "web-server-01",
+        "service": "sshd",
+        "severity": "INFO",
+        "message": "Accepted password for admin",
+        "source_ip": "192.168.1.45",
+        "destination_ip": "10.0.0.10",
+        "event_type": "successful_login"
+    },
+    {
+        "timestamp": "2026-08-29T10:14:35",
+        "hostname": "web-server-01",
+        "service": "sshd",
+        "severity": "WARNING",
+        "message": "Failed password for root",
+        "source_ip": "185.220.101.12",
+        "destination_ip": "10.0.0.10",
+        "event_type": "failed_login"
+    },
+    {
+        "timestamp": "2026-08-29T10:15:02",
+        "hostname": "database-01",
+        "service": "postgres",
+        "severity": "INFO",
+        "message": "Connection authorized for postgres",
+        "source_ip": null,
+        "destination_ip": "10.0.0.20",
+        "event_type": "database_login"
+    },
+    {
+        "timestamp": "2026-08-29T10:15:10",
+        "hostname": "database-01",
+        "service": "postgres",
+        "severity": "ERROR",
+        "message": "Password authentication failed",
+        "source_ip": null,
+        "destination_ip": "10.0.0.20",
+        "event_type": "authentication_failure"
+    },
+    {
+        "timestamp": "2026-08-29T10:16:01",
+        "hostname": "firewall-01",
+        "service": "kernel",
+        "severity": "INFO",
+        "message": "TCP connection allowed",
+        "source_ip": "192.168.1.20",
+        "destination_ip": "10.0.0.5",
+        "event_type": "network_connection"
+    },
+    {
+        "timestamp": "2026-08-29T10:17:25",
+        "hostname": "app-server-02",
+        "service": "application",
+        "severity": "WARNING",
+        "message": "Multiple failed login attempts",
+        "source_ip": "203.0.113.45",
+        "destination_ip": null,
+        "event_type": "brute_force_attempt"
+    },
+    {
+        "timestamp": "2026-08-29T10:18:04",
+        "hostname": "auth-server-01",
+        "service": "sudo",
+        "severity": "WARNING",
+        "message": "Privilege escalation attempt detected",
+        "source_ip": null,
+        "destination_ip": null,
+        "event_type": "privilege_escalation"
+    },
+    {
+        "timestamp": "2026-08-29T10:19:05",
+        "hostname": "web-server-01",
+        "service": "nginx",
+        "severity": "ALERT",
+        "message": "Directory traversal attempt detected",
+        "source_ip": "203.0.113.89",
+        "destination_ip": "10.0.0.10",
+        "event_type": "web_attack"
+    },
+    {
+        "timestamp": "2026-08-29T10:20:35",
+        "hostname": "endpoint-01",
+        "service": "antivirus",
+        "severity": "CRITICAL",
+        "message": "Suspicious process detected",
+        "source_ip": null,
+        "destination_ip": null,
+        "event_type": "malware_detection"
+    },
+    {
+        "timestamp": "2026-08-29T10:21:30",
+        "hostname": "cloud-gateway-01",
+        "service": "aws-security",
+        "severity": "CRITICAL",
+        "message": "Root account login detected",
+        "source_ip": "198.51.100.23",
+        "destination_ip": null,
+        "event_type": "root_login"
+    }
+]

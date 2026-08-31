@@ -1,0 +1,1 @@
+CEF:0|Check Point|VPN-1|R81|500|Login Failure|6|src=91.198.174.199 dst=10.0.0.1 duser=admin act=deny reason=invalid_credentials

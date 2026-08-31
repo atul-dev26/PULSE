@@ -1,0 +1,1 @@
+{"timestamp":"2026-08-29T10:21:30","hostname":"cloud-gateway-01","service":"aws-security","severity":"CRITICAL","message":"Root account login detected","source_ip":"198.51.100.23","destination_ip":null,"event_type":"root_login"}

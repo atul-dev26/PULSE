@@ -1,0 +1,1 @@
+srcAddr=10.0.0.1 destAddr=8.8.8.8 dstPort=53 decision=ALLOW

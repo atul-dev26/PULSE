@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULPF Dashboard — Universal Log Pre-Processing Framework</title>
+    <meta name="description" content="Real-time log ingestion monitoring dashboard for ULPF">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d2e;
+            --bg-card: #1e2235;
+            --bg-card-hover: #252a40;
+            --border: #2a2f45;
+            --text-primary: #e8eaf0;
+            --text-secondary: #8b90a0;
+            --text-muted: #5a5f72;
+            --accent-blue: #4f8cff;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
+            --accent-amber: #fbbf24;
+            --accent-purple: #a78bfa;
+            --accent-cyan: #22d3ee;
+            --gradient-blue: linear-gradient(135deg, #4f8cff 0%, #6366f1 100%);
+            --gradient-green: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            --gradient-red: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            --gradient-purple: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+            --shadow-glow-blue: 0 0 20px rgba(79, 140, 255, 0.15);
+            --shadow-glow-green: 0 0 20px rgba(52, 211, 153, 0.15);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-blue);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .header h1 span {
+            color: var(--text-secondary);
+            font-weight: 400;
+            font-size: 14px;
+            margin-left: 8px;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+            margin-right: 6px;
+            display: inline-block;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
+        }
+
+        /* Main */
+        .container {
+            max-width: 1360px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        .stat-value.blue {
+            color: var(--accent-blue);
+        }
+
+        .stat-value.green {
+            color: var(--accent-green);
+        }
+
+        .stat-value.purple {
+            color: var(--accent-purple);
+        }
+
+        .stat-value.cyan {
+            color: var(--accent-cyan);
+        }
+
+        .stat-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            word-break: break-all;
+        }
+
+        .format-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .format-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+        }
+
+        .format-pill .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .format-pill.json .dot {
+            background: var(--accent-blue);
+        }
+
+        .format-pill.syslog .dot {
+            background: var(--accent-amber);
+        }
+
+        .format-pill.cef .dot {
+            background: var(--accent-purple);
+        }
+
+        .format-pill.unknown .dot {
+            background: var(--text-muted);
+        }
+
+        /* Section Header */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .section-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* Table */
+        .table-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead th {
+            background: var(--bg-secondary);
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tbody tr {
+            transition: background 0.15s;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-card-hover);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-json {
+            background: rgba(79, 140, 255, 0.15);
+            color: var(--accent-blue);
+        }
+
+        .badge-syslog {
+            background: rgba(251, 191, 36, 0.15);
+            color: var(--accent-amber);
+        }
+
+        .badge-cef {
+            background: rgba(167, 139, 250, 0.15);
+            color: var(--accent-purple);
+        }
+
+        .badge-unknown {
+            background: rgba(90, 95, 114, 0.2);
+            color: var(--text-muted);
+        }
+
+        .severity-high,
+        .severity-critical,
+        .severity-emergency,
+        .severity-alert {
+            color: var(--accent-red);
+        }
+
+        .severity-medium,
+        .severity-warning {
+            color: var(--accent-amber);
+        }
+
+        .severity-low,
+        .severity-informational,
+        .severity-notice,
+        .severity-debug {
+            color: var(--accent-green);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-blue);
+        }
+
+        .btn-verify:hover {
+            border-color: var(--accent-green);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Verify result */
+        .verify-result {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            animation: fadeIn 0.3s;
+        }
+
+        .verify-ok {
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--accent-green);
+        }
+
+        .verify-fail {
+            background: rgba(248, 113, 113, 0.12);
+            color: var(--accent-red);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Raw popup */
+        .raw-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            animation: fadeIn 0.2s;
+        }
+
+        .raw-modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 70vh;
+            overflow: auto;
+            box-shadow: var(--shadow-md);
+        }
+
+        .raw-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .raw-modal-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .raw-modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .raw-modal-close:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        .raw-content {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--accent-cyan);
+            line-height: 1.6;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-brand">
+            <div class="header-logo">U</div>
+            <h1>ULPF <span>Dashboard</span></h1>
+        </div>
+        <div class="header-status">
+            <span class="live-dot"></span>
+            Auto-refreshing every 5s
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Stats -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Events</div>
+                <div class="stat-value blue" id="stat-total">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Normalized</div>
+                <div class="stat-value green" id="stat-normalized">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Merkle Batches</div>
+                <div class="stat-value purple" id="stat-batches">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">By Format</div>
+                <div class="format-pills" id="stat-formats"></div>
+            </div>
+            <div class="stat-card" style="grid-column: span 2;">
+                <div class="stat-label">Last Batch Merkle Root</div>
+                <div class="stat-sub" id="stat-merkle">—</div>
+            </div>
+        </div>
+
+        <!-- Events -->
+        <div class="section-header">
+            <h2>Recent Events</h2>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Event ID</th>
+                        <th>Timestamp</th>
+                        <th>Format</th>
+                        <th>Source IP</th>
+                        <th>Dest IP</th>
+                        <th>Action</th>
+                        <th>Severity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="events-body">
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📡</div>
+                                <p>No events ingested yet. POST to /api/v1/ingest to get started.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Raw payload modal -->
+    <div class="raw-overlay" id="raw-overlay" style="display:none;" onclick="closeRaw(event)">
+        <div class="raw-modal">
+            <div class="raw-modal-header">
+                <h3>Raw Payload — <span id="raw-eid" class="mono"></span></h3>
+                <button class="raw-modal-close" onclick="closeRaw()">&times;</button>
+            </div>
+            <pre class="raw-content" id="raw-content"></pre>
+        </div>
+    </div>
+
+    <script>
+        const API = window.location.origin;
+
+        // --- Stats ---
+        async function fetchStats() {
+            try {
+                const res = await fetch(`${API}/api/v1/stats`);
+                const d = await res.json();
+                document.getElementById('stat-total').textContent = d.total_events;
+                document.getElementById('stat-normalized').textContent = d.total_normalized;
+                document.getElementById('stat-batches').textContent = d.total_batches;
+                document.getElementById('stat-merkle').textContent = d.last_batch_merkle_root || '—';
+
+                const pills = document.getElementById('stat-formats');
+                pills.innerHTML = '';
+                for (const [fmt, count] of Object.entries(d.events_by_format || {})) {
+                    const pill = document.createElement('span');
+                    pill.className = `format-pill ${fmt}`;
+                    pill.innerHTML = `<span class="dot"></span>${fmt}: ${count}`;
+                    pills.appendChild(pill);
+                }
+            } catch (e) { console.error('Stats fetch error:', e); }
+        }
+
+        // --- Events ---
+        async function fetchEvents() {
+            try {
+                const res = await fetch(`${API}/api/v1/events?limit=50`);
+                const events = await res.json();
+                const tbody = document.getElementById('events-body');
+
+                if (!events.length) {
+                    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">📡</div><p>No events ingested yet.</p></div></td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = events.map(e => {
+                    const eid = e.event_id;
+                    const shortId = eid.substring(0, 8) + '…';
+                    const fmt = (e.parser_id || 'unknown').replace('_parser', '');
+                    const sev = (e.severity || '—').toString().toLowerCase();
+                    const sevClass = getSeverityClass(sev);
+
+                    return `<tr id="row-${eid}">
+                        <td class="mono" title="${eid}">${shortId}</td>
+                        <td>${e.timestamp || '—'}</td>
+                        <td><span class="badge badge-${fmt}">${fmt}</span></td>
+                        <td class="mono">${e.source_ip || '—'}</td>
+                        <td class="mono">${e.destination_ip || '—'}</td>
+                        <td>${e.action || '—'}</td>
+                        <td class="${sevClass}">${e.severity || '—'}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-verify" onclick="verifyEvent('${eid}', this)">🔍 Verify</button>
+                                <button class="btn" onclick="viewRaw('${eid}')">📄 Raw</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+            } catch (e) { console.error('Events fetch error:', e); }
+        }
+
+        function getSeverityClass(sev) {
+            if (['high', 'critical', 'emergency', 'alert', 'error'].some(s => sev.includes(s))) return 'severity-high';
+            if (['medium', 'warning', '3', '4'].some(s => sev.includes(s))) return 'severity-medium';
+            return 'severity-low';
+        }
+
+        // --- Verify ---
+        async function verifyEvent(eventId, btn) {
+            btn.disabled = true;
+            btn.textContent = '⏳…';
+            try {
+                const res = await fetch(`${API}/api/v1/events/${eventId}/verify`, { method: 'POST' });
+                const d = await res.json();
+                const ok = d.overall === 'VERIFIED';
+                const parent = btn.parentElement;
+                const span = document.createElement('span');
+                span.className = `verify-result ${ok ? 'verify-ok' : 'verify-fail'}`;
+                span.textContent = ok ? '✓ VERIFIED' : '✗ TAMPERED';
+                parent.replaceChild(span, btn);
+                // Also replace the Raw button  with the result
+            } catch (e) {
+                btn.textContent = '❌ Error';
+                console.error(e);
+            }
+        }
+
+        // --- Raw modal ---
+        async function viewRaw(eventId) {
+            document.getElementById('raw-eid').textContent = eventId.substring(0, 12) + '…';
+            document.getElementById('raw-content').textContent = 'Loading…';
+            document.getElementById('raw-overlay').style.display = 'flex';
+            try {
+                const res = await fetch(`${API}/api/v1/events/${eventId}/raw`);
+                const text = await res.text();
+                // Try to pretty-print JSON
+                try {
+                    const obj = JSON.parse(text);
+                    document.getElementById('raw-content').textContent = JSON.stringify(obj, null, 2);
+                } catch {
+                    document.getElementById('raw-content').textContent = text;
+                }
+            } catch (e) {
+                document.getElementById('raw-content').textContent = 'Error loading raw payload.';
+            }
+        }
+        function closeRaw(evt) {
+            if (evt && evt.target !== document.getElementById('raw-overlay')) return;
+            document.getElementById('raw-overlay').style.display = 'none';
+        }
+
+        // --- Init + Auto-refresh ---
+        function refresh() { fetchStats(); fetchEvents(); }
+        refresh();
+        setInterval(refresh, 5000);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1 @@
+{"timestamp":"2026-08-29T10:20:35","hostname":"endpoint-01","service":"antivirus","severity":"CRITICAL","message":"Suspicious process detected","source_ip":null,"destination_ip":null,"event_type":"malware_detection"}

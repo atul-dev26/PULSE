@@ -1,0 +1,1 @@
+CEF:0|Fortinet|FortiGate|v7.0|1001|Deny Traffic|3|src=10.0.0.5 dst=8.8.8.8 spt=49122 dpt=443 act=deny

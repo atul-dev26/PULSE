@@ -1,0 +1,1 @@
+{"timestamp":"2026-08-29T10:19:05","hostname":"web-server-02","service":"nginx","severity":"ALERT","message":"Directory traversal attempt detected","source_ip":"203.0.113.89","destination_ip":"10.0.0.10","event_type":"web_attack"}

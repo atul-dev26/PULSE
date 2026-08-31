@@ -1,0 +1,615 @@
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from pydantic import BaseModel
+import os
+
+from common.database import get_db
+from common.models import RawEventRow, CanonicalEventRow, IntegrityRecordRow, BatchRow, DLQRecordRow
+from ingestion.service import process_ingestion
+from ingestion.splitter import split_payload
+from observability.metrics import generate_latest, CONTENT_TYPE_LATEST, get_observability_json
+from onboarding.models import PendingSourceRow
+
+router = APIRouter()
+
+@router.get("/metrics")
+def metrics():
+    data = generate_latest()
+    return Response(data, media_type=CONTENT_TYPE_LATEST)
+
+@router.get("/api/v1/observability")
+def observability():
+    return get_observability_json()
+
+from typing import Any, Union, Dict, List
+from fastapi import Body, APIRouter, Depends, HTTPException, Request
+
+@router.post("/api/v1/ingest")
+def ingest(
+    payload_body: Any = Body(
+        default=None, 
+        description="Payload can be any JSON object, list, or a raw string log (ensure raw strings are quoted)."
+    ),
+    source_id: str = "http_endpoint",
+    transport: str = "http",
+    db: Session = Depends(get_db)
+):
+    if not payload_body:
+         raise HTTPException(status_code=400, detail="Empty payload")
+
+    # If the user wrapped it in the old format intentionally
+    if isinstance(payload_body, dict) and "payload" in payload_body:
+        source_id = payload_body.get("source_id", source_id)
+        transport = payload_body.get("transport", transport)
+        p = payload_body["payload"]
+        body_str = json.dumps(p) if isinstance(p, (dict, list)) else str(p)
+    else:
+        body_str = json.dumps(payload_body) if isinstance(payload_body, (dict, list)) else str(payload_body)
+
+    splits = split_payload(body_str)
+    
+    if len(splits) == 1:
+        return process_ingestion(db, source_id, transport, splits[0])
+        
+    results = []
+    for item in splits:
+        res = process_ingestion(db, source_id, transport, item)
+        results.append(res)
+        
+    return {
+        "batch": True,
+        "total_logs_detected": len(splits),
+        "results": results
+    }
+
+@router.get("/api/v1/events")
+def list_events(limit: int = 50, db: Session = Depends(get_db)):
+    events = db.query(CanonicalEventRow).order_by(CanonicalEventRow.event_id.desc()).limit(limit).all()
+    result = []
+    for e in events:
+        network = e.network or {}
+        security = e.security or {}
+        provenance = e.provenance or {}
+        result.append({
+            "event_id": e.event_id,
+            "timestamp": e.timestamp,
+            "source_ip": network.get("source_ip"),
+            "destination_ip": network.get("destination_ip"),
+            "action": security.get("action"),
+            "severity": security.get("severity"),
+            "parser_id": provenance.get("parser_id"),
+            "source": e.source,
+            "network": e.network,
+            "security": e.security,
+            "provenance": e.provenance,
+            "enrichment": e.enrichment
+        })
+    return result
+
+@router.get("/api/v1/stats")
+def get_stats(db: Session = Depends(get_db)):
+    # Count normalizations and raw
+    total_events = db.query(func.count(CanonicalEventRow.event_id)).scalar() or 0
+    total_raw = db.query(func.count(RawEventRow.event_id)).scalar() or 0
+    total_batches = db.query(func.count(BatchRow.batch_id)).scalar() or 0
+    dlq_count = db.query(func.count(DLQRecordRow.event_id)).scalar() or 0
+
+    last_batch = db.query(BatchRow).order_by(BatchRow.created_at.desc()).first()
+    last_batch_merkle_root = last_batch.merkle_root if last_batch else None
+
+    # Count events by parser_id (format proxy)
+    all_integrity = db.query(IntegrityRecordRow.parser_id).all()
+    format_counts = {}
+    for (pid,) in all_integrity:
+        fmt = (pid or "unknown").replace("_parser", "")
+        format_counts[fmt] = format_counts.get(fmt, 0) + 1
+
+    # Count raw events with no canonical (unknown format + DLQ)
+    unknown_count = total_raw - total_events
+    if unknown_count > 0:
+        format_counts["unknown"] = format_counts.get("unknown", 0) + unknown_count
+
+    return {
+        "total_events": total_raw,
+        "total_normalized": total_events,
+        "dlq_count": dlq_count,
+        "events_by_format": format_counts,
+        "total_batches": total_batches,
+        "last_batch_merkle_root": last_batch_merkle_root
+    }
+
+@router.get("/api/v1/events/{event_id}")
+def get_canonical_event(event_id: str, db: Session = Depends(get_db)):
+    e = db.query(CanonicalEventRow).filter(CanonicalEventRow.event_id == event_id).first()
+    if not e:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    return {
+        "event_id": e.event_id,
+        "timestamp": e.timestamp,
+        "source": e.source,
+        "network": e.network,
+        "security": e.security,
+        "provenance": e.provenance,
+        "enrichment": e.enrichment
+    }
+
+@router.get("/api/v1/events/{event_id}/raw")
+def get_raw_event(event_id: str, db: Session = Depends(get_db)):
+    raw = db.query(RawEventRow).filter(RawEventRow.event_id == event_id).first()
+    if not raw:
+        raise HTTPException(status_code=404, detail="Raw event not found")
+    
+    if os.path.exists(raw.storage_uri):
+        with open(raw.storage_uri, "rb") as f:
+            content = f.read()
+        return Response(content=content, media_type="application/octet-stream")
+    else:
+        return Response(content=raw.payload, media_type="application/octet-stream")
+
+from integrity.chain import GENESIS_HASH, compute_normalized_hash
+from integrity.merkle import compute_merkle_root
+from trust.score import compute_trust_score
+import hashlib
+import json
+
+def _do_verify(event_id: str, db: Session):
+    """Core verification logic shared by GET and POST handlers.
+
+    Three possible outcomes:
+      - event_id not found in raw_events at all → 404
+      - raw event exists but was never normalized (unknown format, no IntegrityRecord)
+        → 200 NOT_APPLICABLE with raw hash check only
+      - full integrity record exists → full chain + merkle verification
+    """
+    raw_row = db.query(RawEventRow).filter(RawEventRow.event_id == event_id).first()
+    if not raw_row:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    integrity_row = db.query(IntegrityRecordRow).filter(IntegrityRecordRow.event_id == event_id).first()
+
+    # --- Case: unknown format — no IntegrityRecord, only check raw evidence ---
+    if not integrity_row:
+        if raw_row and os.path.exists(raw_row.storage_uri):
+            with open(raw_row.storage_uri, "rb") as f:
+                r_bytes = f.read()
+            recomputed_raw_hash = hashlib.sha256(r_bytes).hexdigest()
+            raw_integrity = (recomputed_raw_hash == raw_row.raw_sha256)
+        else:
+            raw_integrity = False
+        return {
+            "event_id": event_id,
+            "raw_integrity": raw_integrity,
+            "normalized_integrity": None,
+            "chain_integrity": None,
+            "merkle_integrity": None,
+            "overall": "NOT_APPLICABLE",
+            "reason": "Event was not normalized (unknown format); raw evidence integrity was still checked."
+        }
+
+    canonical_row = db.query(CanonicalEventRow).filter(CanonicalEventRow.event_id == event_id).first()
+
+    # 1. Verify Raw
+    if raw_row and os.path.exists(raw_row.storage_uri):
+        with open(raw_row.storage_uri, "rb") as f:
+            r_bytes = f.read()
+        recomputed_raw_hash = hashlib.sha256(r_bytes).hexdigest()
+    else:
+        recomputed_raw_hash = None
+
+    raw_integrity = (recomputed_raw_hash == integrity_row.raw_hash)
+
+    # 2. Verify Normalized
+    recomputed_normalized = None
+    if canonical_row:
+        c_dict = {
+            "event_id": canonical_row.event_id,
+            "timestamp": canonical_row.timestamp,
+            "source": canonical_row.source,
+            "network": canonical_row.network,
+            "security": canonical_row.security,
+            "provenance": canonical_row.provenance,
+            "enrichment": canonical_row.enrichment
+        }
+        recomputed_normalized = compute_normalized_hash(c_dict)
+
+    normalized_integrity = (recomputed_normalized == integrity_row.normalized_hash)
+
+    # 3. Verify Chain
+    recomputed_chain_hash = hashlib.sha256(
+        (event_id + integrity_row.raw_hash + integrity_row.normalized_hash +
+         integrity_row.parser_version + integrity_row.mapping_version +
+         integrity_row.previous_chain_hash).encode('utf-8')
+    ).hexdigest()
+
+    chain_integrity = (recomputed_chain_hash == integrity_row.chain_hash)
+
+    # 4. Verify Merkle (unbatched events are not tampering — default True)
+    merkle_integrity = True
+    if integrity_row.batch_id:
+        batch = db.query(BatchRow).filter(BatchRow.batch_id == integrity_row.batch_id).first()
+        if batch:
+            batch_records = db.query(IntegrityRecordRow).filter(
+                IntegrityRecordRow.batch_id == integrity_row.batch_id
+            ).order_by(IntegrityRecordRow.seq_id.asc()).all()
+            hashes = [r.chain_hash for r in batch_records]
+            recomputed_merkle = compute_merkle_root(hashes)
+            merkle_integrity = (recomputed_merkle == batch.merkle_root)
+        else:
+            merkle_integrity = False
+
+    overall = "VERIFIED" if all([raw_integrity, normalized_integrity, chain_integrity, merkle_integrity]) else "TAMPERING_DETECTED"
+
+    return {
+        "event_id": event_id,
+        "raw_integrity": raw_integrity,
+        "normalized_integrity": normalized_integrity,
+        "chain_integrity": chain_integrity,
+        "merkle_integrity": merkle_integrity,
+        "overall": overall
+    }
+
+@router.get("/api/v1/events/{event_id}/verify")
+def verify_event_get(event_id: str, db: Session = Depends(get_db)):
+    return _do_verify(event_id, db)
+
+@router.post("/api/v1/events/{event_id}/verify")
+def verify_event_post(event_id: str, db: Session = Depends(get_db)):
+    return _do_verify(event_id, db)
+
+@router.get("/api/v1/events/{event_id}/trust-score")
+def get_trust_score(event_id: str, db: Session = Depends(get_db)):
+    try:
+        return compute_trust_score(event_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/api/v1/events/{event_id}/trace")
+def trace_event(event_id: str, db: Session = Depends(get_db)):
+    integrity_row = db.query(IntegrityRecordRow).filter(IntegrityRecordRow.event_id == event_id).first()
+    if not integrity_row:
+        raise HTTPException(status_code=404, detail="Integrity record not found")
+        
+    res = {
+        "raw_hash": integrity_row.raw_hash,
+        "normalized_hash": integrity_row.normalized_hash,
+        "parser_id": integrity_row.parser_id,
+        "parser_version": integrity_row.parser_version,
+        "mapping_version": integrity_row.mapping_version,
+        "chain_hash": integrity_row.chain_hash,
+        "merkle_batch_id": integrity_row.batch_id,
+        "merkle_root": None
+    }
+    
+    if integrity_row.batch_id:
+        batch = db.query(BatchRow).filter(BatchRow.batch_id == integrity_row.batch_id).first()
+        if batch:
+            res["merkle_root"] = batch.merkle_root
+
+    # Embed trust score into trace response
+    try:
+        ts = compute_trust_score(event_id, db)
+        res["trust_score"] = ts["trust_score"]
+        res["score_breakdown"] = ts["score_breakdown"]
+    except Exception:
+        res["trust_score"] = None
+        res["score_breakdown"] = None
+
+    return res
+
+@router.get("/api/v1/events/{event_id}/custody-certificate")
+def get_custody_certificate(event_id: str, format: str = "json", db: Session = Depends(get_db)):
+    if format == "pdf":
+        raise HTTPException(status_code=501, detail="PDF format is not supported in this MVP (reportlab not installed, skipping to save unneeded complexity). JSON only.")
+        
+    import uuid
+    from datetime import datetime
+    
+    raw_row = db.query(RawEventRow).filter(RawEventRow.event_id == event_id).first()
+    if not raw_row:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    # Reuse existing verification logic
+    verify_result = _do_verify(event_id, db)
+    
+    # Try fetching trace safely
+    trace_data = None
+    integrity_row = db.query(IntegrityRecordRow).filter(IntegrityRecordRow.event_id == event_id).first()
+    if integrity_row:
+        # We can just call trace_event, but it raises HTTP exceptions if not found which we handled above
+        trace_data = trace_event(event_id, db)
+        
+    # Get trust score safely
+    ts_data = None
+    try:
+        ts_data = compute_trust_score(event_id, db)
+    except Exception:
+        pass
+
+    overall = verify_result["overall"]
+    if overall == "VERIFIED" and integrity_row and not integrity_row.batch_id:
+        overall = "VERIFIED_PENDING_BATCH"
+
+    cert = {
+        "certificate_id": str(uuid.uuid4()),
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_by_system": "ULPF v1.0-MVP",
+        "event_id": event_id,
+        "source_id": raw_row.source_id,
+        "ingestion_timestamp": raw_row.received_at.isoformat() + "Z" if raw_row.received_at else None,
+        "evidence": {
+            "raw_sha256": raw_row.raw_sha256,
+            "normalized_sha256": trace_data.get("normalized_hash") if trace_data else None,
+            "raw_storage_reference": raw_row.storage_uri
+        },
+        "processing_lineage": {
+            "parser_id": trace_data.get("parser_id") if trace_data else None,
+            "parser_version": trace_data.get("parser_version") if trace_data else None,
+            "mapping_version": trace_data.get("mapping_version") if trace_data else None
+        },
+        "chain_of_custody": {
+            "chain_hash": trace_data.get("chain_hash") if trace_data else None,
+            "previous_chain_hash": integrity_row.previous_chain_hash if integrity_row else None,
+            "merkle_batch_id": trace_data.get("merkle_batch_id") if trace_data else None,
+            "merkle_root": trace_data.get("merkle_root") if trace_data else None,
+            "anchor_reference": None
+        },
+        "verification_result": {
+            "overall": overall,
+            "raw_integrity": verify_result["raw_integrity"],
+            "normalized_integrity": verify_result["normalized_integrity"],
+            "chain_integrity": verify_result["chain_integrity"],
+            "merkle_integrity": verify_result["merkle_integrity"] if verify_result["overall"] != "NOT_APPLICABLE" else None
+        },
+        "trust_score": {
+            "score": ts_data["trust_score"] if ts_data else None,
+            "checks_summary": ts_data["checks"] if ts_data else []
+        }
+    }
+    
+    if integrity_row and integrity_row.batch_id:
+        batch = db.query(BatchRow).filter(BatchRow.batch_id == integrity_row.batch_id).first()
+        if batch:
+            cert["chain_of_custody"]["anchor_reference"] = batch.fake_tx_id
+            
+    # Certificate Hash computation (to make the document tamper-evident)
+    # Computed over canonical JSON of the entire cert, with the certificate_hash field excluded.
+    cert_json = json.dumps(cert, separators=(',', ':'), sort_keys=True)
+    cert["certificate_hash"] = hashlib.sha256(cert_json.encode("utf-8")).hexdigest()
+    
+    return cert
+
+@router.get("/api/v1/dlq")
+def list_dlq(db: Session = Depends(get_db)):
+    records = db.query(DLQRecordRow).order_by(DLQRecordRow.timestamp.desc()).all()
+    return [
+        {
+            "event_id": r.event_id,
+            "raw_sha256": r.raw_sha256,
+            "failure_stage": r.failure_stage,
+            "error_code": r.error_code,
+            "error_message": r.error_message,
+            "attempt": r.attempt,
+            "timestamp": r.timestamp
+        } for r in records
+    ]
+
+@router.get("/api/v1/dlq/{event_id}")
+def get_dlq_record(event_id: str, db: Session = Depends(get_db)):
+    r = db.query(DLQRecordRow).filter(DLQRecordRow.event_id == event_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="DLQ record not found")
+    return {
+        "event_id": r.event_id,
+        "raw_sha256": r.raw_sha256,
+        "failure_stage": r.failure_stage,
+        "error_code": r.error_code,
+        "error_message": r.error_message,
+        "attempt": r.attempt,
+        "timestamp": r.timestamp
+    }
+
+# Onboarding Endpoints
+@router.get("/api/v1/onboarding/pending")
+def list_pending_sources(db: Session = Depends(get_db)):
+    sources = db.query(PendingSourceRow).filter(PendingSourceRow.status == "pending").all()
+    return [
+        {
+            "source_id": s.source_id,
+            "first_seen_at": s.first_seen_at,
+            "suggested_mapping": s.suggested_mapping
+        }
+        for s in sources
+    ]
+
+@router.get("/api/v1/onboarding/pending/{source_id}")
+def get_pending_source(source_id: str, db: Session = Depends(get_db)):
+    s = db.query(PendingSourceRow).filter(PendingSourceRow.source_id == source_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Source not found")
+    return {
+        "source_id": s.source_id,
+        "first_seen_at": s.first_seen_at,
+        "sample_payload": s.sample_payload,
+        "discovered_fields": s.discovered_fields,
+        "suggested_mapping": s.suggested_mapping,
+        "status": s.status,
+        "approved_mapping": s.approved_mapping
+    }
+
+class ApproveSourceRequest(BaseModel):
+    overrides: dict = {}
+
+@router.post("/api/v1/onboarding/pending/{source_id}/approve")
+def approve_pending_source(source_id: str, req: ApproveSourceRequest, db: Session = Depends(get_db)):
+    s = db.query(PendingSourceRow).filter(PendingSourceRow.source_id == source_id).first()
+    if not s or s.status != "pending":
+        raise HTTPException(status_code=404, detail="Pending source not found or not pending")
+    
+    final_mapping = s.suggested_mapping or {}
+    
+    # Apply overrides
+    for key, c_field in req.overrides.items():
+        if key in final_mapping:
+            final_mapping[key]["canonical_field"] = c_field
+            final_mapping[key]["confidence"] = 1.0
+        else:
+            final_mapping[key] = {"canonical_field": c_field, "confidence": 1.0}
+            
+    s.approved_mapping = final_mapping
+    s.status = "approved"
+    db.commit()
+    return {"status": "approved", "source_id": source_id, "approved_mapping": final_mapping}
+
+@router.post("/api/v1/onboarding/pending/{source_id}/reject")
+def reject_pending_source(source_id: str, db: Session = Depends(get_db)):
+    s = db.query(PendingSourceRow).filter(PendingSourceRow.source_id == source_id).first()
+    if not s or s.status != "pending":
+        raise HTTPException(status_code=404, detail="Pending source not found or not pending")
+    
+    s.status = "rejected"
+    db.commit()
+    return {"status": "rejected", "source_id": source_id}
+
+# ── Playground ──────────────────────────────────────────────────────
+from detection.detector import detect
+from parser.json_parser import parse_json
+from parser.syslog_parser import parse_syslog
+from parser.cef_parser import parse_cef
+from parser.leef_parser import parse_leef
+from parser.drain3_parser import parse_drain3
+from normalization.json_mapper import map_to_canonical
+from enrichment import ENRICHMENT_CONFIG
+from enrichment.ip_classifier import classify_ip
+from enrichment.geoip import get_country_code
+from normalization.schema import EventEnrichment
+from integrity.chain import compute_normalized_hash
+
+@router.post("/api/v1/playground/process")
+def playground_process(
+    payload_body: Any = Body(
+        default=None, 
+        description="Payload can be any JSON object, list, or a raw string log (ensure raw strings are quoted)."
+    )
+):
+    if not payload_body:
+        return {"error": "Empty payload"}
+
+    if isinstance(payload_body, dict) and "payload" in payload_body and len(payload_body) <= 2:
+        p = payload_body["payload"]
+        payload_str = json.dumps(p) if isinstance(p, (dict, list)) else str(p)
+    else:
+        payload_str = json.dumps(payload_body) if isinstance(payload_body, (dict, list)) else str(payload_body)
+
+    payload_bytes = payload_str.encode("utf-8")
+    raw_sha256 = hashlib.sha256(payload_bytes).hexdigest()
+
+    result = {
+        "raw_input": payload_str,
+        "detection": None,
+        "parsing": None,
+        "normalization": None,
+        "enrichment": None,
+        "validation": None,
+        "integrity": None,
+    }
+
+    # 1. Detection
+    try:
+        det = detect(payload_bytes)
+        result["detection"] = det.model_dump()
+    except Exception as e:
+        result["detection"] = {"error": str(e)}
+        return result
+
+    # 2. Parsing
+    parsed_data = None
+    try:
+        if det.parser_id == "json_parser":
+            parsed_data = parse_json(payload_bytes)
+        elif det.parser_id == "syslog_parser":
+            parsed_data = parse_syslog(payload_bytes)
+        elif det.parser_id == "cef_parser":
+            parsed_data = parse_cef(payload_bytes)
+        elif det.parser_id == "leef_parser":
+            parsed_data = parse_leef(payload_bytes)
+        elif det.parser_id == "drain3_parser":
+            parsed_data = parse_drain3(payload_bytes)
+
+        if parsed_data is not None:
+            result["parsing"] = parsed_data
+        else:
+            result["parsing"] = {"note": "No parser matched or parser returned None"}
+    except Exception as e:
+        result["parsing"] = {"error": str(e)}
+        return result
+
+    if parsed_data is None:
+        return result
+
+    # 3. Normalization
+    try:
+        event_id = "playground-preview"
+        canonical = map_to_canonical(event_id, parsed_data, parser_id=det.parser_id or "unknown")
+        result["normalization"] = {
+            "event_id": canonical.event_id,
+            "timestamp": canonical.timestamp,
+            "source": canonical.source.model_dump(),
+            "network": canonical.network.model_dump(),
+            "security": canonical.security.model_dump(),
+            "provenance": canonical.provenance.model_dump(),
+        }
+    except Exception as e:
+        result["normalization"] = {"error": str(e)}
+        return result
+
+    # 4. Enrichment
+    try:
+        enrichment_data = EventEnrichment()
+        src_ip = canonical.network.source_ip
+        dst_ip = canonical.network.destination_ip
+        if ENRICHMENT_CONFIG.get("ip_classification"):
+            if src_ip:
+                enrichment_data.source_ip_class = classify_ip(src_ip)
+            if dst_ip:
+                enrichment_data.destination_ip_class = classify_ip(dst_ip)
+        if ENRICHMENT_CONFIG.get("geoip"):
+            if dst_ip and enrichment_data.destination_ip_class == "public":
+                enrichment_data.destination_geo_country = get_country_code(dst_ip)
+        result["enrichment"] = enrichment_data.model_dump()
+    except Exception as e:
+        result["enrichment"] = {"error": str(e)}
+
+    # 5. Validation (simple field completeness check)
+    try:
+        net = canonical.network
+        sec = canonical.security
+        filled = sum(1 for v in [net.source_ip, net.destination_ip, net.source_port, net.destination_port, sec.action, sec.severity] if v is not None)
+        result["validation"] = {
+            "fields_populated": filled,
+            "fields_total": 6,
+            "completeness_pct": round(filled / 6 * 100, 1),
+            "has_source_ip": net.source_ip is not None,
+            "has_destination_ip": net.destination_ip is not None,
+            "has_action": sec.action is not None,
+        }
+    except Exception as e:
+        result["validation"] = {"error": str(e)}
+
+    # 6. Integrity (hash preview)
+    try:
+        c_dict = result["normalization"].copy()
+        c_dict["enrichment"] = result.get("enrichment")
+        norm_hash = compute_normalized_hash(c_dict)
+        result["integrity"] = {
+            "raw_sha256": raw_sha256,
+            "normalized_sha256": norm_hash,
+            "note": "These are the hashes that would be stored in the integrity chain."
+        }
+    except Exception as e:
+        result["integrity"] = {"error": str(e)}
+
+    return result
+

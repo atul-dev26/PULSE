@@ -1,0 +1,1 @@
+{"timestamp":"2026-08-29T10:14:35","hostname":"web-server-01","service":"sshd","severity":"WARNING","message":"Failed password for root","source_ip":"185.220.101.12","destination_ip":"10.0.0.10","event_type":"failed_login"}

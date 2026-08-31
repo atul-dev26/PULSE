@@ -1,0 +1,1 @@
+srcAddr=10.2.3.4 destAddr=8.8.8.8 dstPort=443 decision=DENY

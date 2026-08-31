@@ -1,0 +1,1 @@
+{"timestamp":"2026-08-29T10:15:02","hostname":"database-01","service":"postgres","severity":"INFO","message":"Connection authorized for postgres","source_ip":null,"destination_ip":"10.0.0.20","event_type":"database_login"}

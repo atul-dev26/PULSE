@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULPF Playground</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 0 20px;
+            background: #fafafa;
+            color: #222;
+        }
+
+        h1 {
+            border-bottom: 2px solid #333;
+            padding-bottom: 8px;
+        }
+
+        h2 {
+            margin-top: 28px;
+            color: #444;
+            font-size: 1.1em;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 4px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            font-family: monospace;
+            font-size: 13px;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #aaa;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin: 4px 4px 4px 0;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 13px;
+            border: 1px solid #888;
+            background: #e8e8e8;
+        }
+
+        button:hover {
+            background: #ddd;
+        }
+
+        #processBtn {
+            background: #4a7;
+            color: white;
+            border-color: #387;
+            font-weight: bold;
+        }
+
+        #processBtn:hover {
+            background: #396;
+        }
+
+        pre {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .stage {
+            margin-bottom: 10px;
+        }
+
+        .error {
+            color: #c33;
+        }
+
+        .null {
+            color: #999;
+            font-style: italic;
+        }
+
+        #results {
+            display: none;
+        }
+
+        #spinner {
+            display: none;
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ULPF Playground</h1>
+    <p>Paste any raw log below and click <strong>Process Event</strong> to see the full pipeline breakdown.</p>
+
+    <div>
+        <strong>Examples:</strong>
+        <button onclick="loadExample('json')">Try JSON</button>
+        <button onclick="loadExample('cef')">Try CEF</button>
+        <button onclick="loadExample('syslog')">Try Syslog</button>
+    </div>
+
+    <br>
+    <textarea id="payload" placeholder="Paste a raw log line here..."></textarea>
+    <br>
+    <button id="processBtn" onclick="processEvent()">Process Event</button>
+    <span id="spinner">Processing...</span>
+
+    <div id="results">
+        <h2>Raw Input</h2>
+        <pre id="rawInput"></pre>
+
+        <h2>1. Detection</h2>
+        <div class="stage">
+            <pre id="stageDetection"></pre>
+        </div>
+
+        <h2>2. Parsing</h2>
+        <div class="stage">
+            <pre id="stageParsing"></pre>
+        </div>
+
+        <h2>3. Normalization</h2>
+        <div class="stage">
+            <pre id="stageNormalization"></pre>
+        </div>
+
+        <h2>4. Enrichment</h2>
+        <div class="stage">
+            <pre id="stageEnrichment"></pre>
+        </div>
+
+        <h2>5. Validation</h2>
+        <div class="stage">
+            <pre id="stageValidation"></pre>
+        </div>
+
+        <h2>6. Integrity</h2>
+        <div class="stage">
+            <pre id="stageIntegrity"></pre>
+        </div>
+    </div>
+
+    <script>
+        const EXAMPLES = {
+            json: '{"src_ip":"10.0.0.5","dst_ip":"8.8.8.8","src_port":49122,"dest_port":443,"action":"deny","severity":"high","protocol":"TCP","timestamp":"2026-08-29T12:00:00Z"}',
+            cef: 'CEF:0|Fortinet|FortiGate|v7.0|1001|Deny Traffic|3|src=10.0.0.5 dst=8.8.8.8 spt=49122 dpt=443 act=deny',
+            syslog: '<34>Oct 11 22:14:15 mymachine customapp: src=192.168.1.50 dst=8.8.8.8 action=deny msg=blocked'
+        };
+
+        function loadExample(type) {
+            document.getElementById('payload').value = EXAMPLES[type] || '';
+        }
+
+        function renderStage(elId, data) {
+            const el = document.getElementById(elId);
+            if (data === null || data === undefined) {
+                el.innerHTML = '<span class="null">Not reached</span>';
+            } else if (data.error) {
+                el.innerHTML = '<span class="error">Error: ' + escapeHtml(data.error) + '</span>';
+            } else {
+                el.textContent = JSON.stringify(data, null, 2);
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        async function processEvent() {
+            const payload = document.getElementById('payload').value.trim();
+            if (!payload) { alert('Please enter a log payload.'); return; }
+
+            document.getElementById('spinner').style.display = 'inline';
+            document.getElementById('results').style.display = 'none';
+
+            try {
+                const resp = await fetch('/api/v1/playground/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payload: payload })
+                });
+                const data = await resp.json();
+
+                document.getElementById('rawInput').textContent = data.raw_input || payload;
+                renderStage('stageDetection', data.detection);
+                renderStage('stageParsing', data.parsing);
+                renderStage('stageNormalization', data.normalization);
+                renderStage('stageEnrichment', data.enrichment);
+                renderStage('stageValidation', data.validation);
+                renderStage('stageIntegrity', data.integrity);
+
+                document.getElementById('results').style.display = 'block';
+            } catch (err) {
+                alert('Request failed: ' + err.message);
+            } finally {
+                document.getElementById('spinner').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+
+</html>

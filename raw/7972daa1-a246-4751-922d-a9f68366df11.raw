@@ -1,0 +1,1 @@
+{"timestamp":"2026-08-29T10:16:01","hostname":"firewall-01","service":"kernel","severity":"INFO","message":"TCP connection allowed","source_ip":"192.168.1.20","destination_ip":"10.0.0.5","event_type":"network_connection"}

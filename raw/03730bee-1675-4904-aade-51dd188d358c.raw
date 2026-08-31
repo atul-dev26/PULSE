@@ -1,0 +1,1 @@
+{"timestamp":"2026-08-29T10:14:22","hostname":"web-server-01","service":"sshd","severity":"INFO","message":"Accepted password for admin","source_ip":"192.168.1.45","destination_ip":"10.0.0.10","event_type":"successful_login"}

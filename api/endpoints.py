@@ -65,30 +65,120 @@ def ingest(
     }
 
 @router.get("/api/v1/events")
-def list_events(limit: int = 50, db: Session = Depends(get_db)):
-    events = db.query(CanonicalEventRow).order_by(CanonicalEventRow.event_id.desc()).limit(limit).all()
+def list_events(
+    page: int = 1,
+    page_size: int = 25,
+    limit: int = 50,
+    source_id: str = None,
+    format: str = None,
+    severity: str = None,
+    status: str = None,
+    db: Session = Depends(get_db)
+):
+    from sqlalchemy import func
+    from common.models import RawEventRow, CanonicalEventRow, DLQRecordRow
+    
+    # Cap page_size to 100
+    if page_size > 100:
+        page_size = 100
+        
+    if limit != 50 and page_size == 25:
+        page_size = min(limit, 100)
+
+    offset = (page - 1) * page_size
+
+    # Build query joining raw, canonical, and dlq
+    query = db.query(RawEventRow, CanonicalEventRow, DLQRecordRow)\
+        .outerjoin(CanonicalEventRow, RawEventRow.event_id == CanonicalEventRow.event_id)\
+        .outerjoin(DLQRecordRow, RawEventRow.event_id == DLQRecordRow.event_id)
+    
+    # filtering
+    if source_id:
+        query = query.filter(RawEventRow.source_id == source_id)
+    if format:
+        query = query.filter(func.json_extract(CanonicalEventRow.provenance, '$.parser_id') == format)
+    if severity:
+        query = query.filter(func.json_extract(CanonicalEventRow.security, '$.severity') == severity)
+    if status:
+        if status.upper() in ("SUCCESS", "NORMALIZED"):
+            query = query.filter(CanonicalEventRow.event_id != None)
+        elif status.upper() in ("FAILED", "DLQ"):
+            query = query.filter(DLQRecordRow.event_id != None)
+
+    # Pagination
+    total_events = query.count()
+    total_pages = max(1, (total_events + page_size - 1) // page_size)
+    
+    events_batch = query.order_by(RawEventRow.received_at.desc()).offset(offset).limit(page_size).all()
+    
     result = []
-    for e in events:
-        network = e.network or {}
-        security = e.security or {}
-        provenance = e.provenance or {}
+    # TODO: Optimise trust score calculation for batches. Currently it performs multiple DB queries and disk I/O per event.
+    for raw, canon, dlq in events_batch:
+        try:
+            from trust.score import compute_trust_score
+            ts = compute_trust_score(raw.event_id, db)["trust_score"]
+        except Exception:
+            ts = None
+            
+        evt_status = "SUCCESS" if canon else ("FAILED" if dlq else "PENDING")
+        
+        network = canon.network if canon and canon.network else {}
+        security = canon.security if canon and canon.security else {}
+        provenance = canon.provenance if canon and canon.provenance else {}
+        
         result.append({
-            "event_id": e.event_id,
-            "timestamp": e.timestamp,
+            "event_id": raw.event_id,
+            "timestamp": canon.timestamp if canon else raw.received_at.isoformat(),
             "source_ip": network.get("source_ip"),
             "destination_ip": network.get("destination_ip"),
             "action": security.get("action"),
             "severity": security.get("severity"),
             "parser_id": provenance.get("parser_id"),
-            "source": e.source,
-            "network": e.network,
-            "security": e.security,
-            "provenance": e.provenance,
-            "enrichment": e.enrichment
+            "source": canon.source if canon else None,
+            "network": network,
+            "security": security,
+            "provenance": provenance,
+            "enrichment": canon.enrichment if canon else None,
+            "status": evt_status,
+            "trust_score": ts
         })
-    return result
 
-@router.get("/api/v1/stats")
+    return {
+        "events": result,
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "total_events": total_events,
+            "total_pages": total_pages
+        }
+    }
+
+@router.get("/api/v1/events/filters")
+def get_events_filters(db: Session = Depends(get_db)):
+    from sqlalchemy import func
+    from common.models import RawEventRow, CanonicalEventRow
+
+    # Distinct source_ids
+    sources_res = db.query(RawEventRow.source_id).distinct().all()
+    sources = [s[0] for s in sources_res if s[0]]
+
+    # Distinct formats (parser_ids)
+    formats_res = db.query(func.json_extract(CanonicalEventRow.provenance, '$.parser_id')).distinct().all()
+    formats = [f[0] for f in formats_res if f[0]]
+
+    # Distinct severities
+    severities_res = db.query(func.json_extract(CanonicalEventRow.security, '$.severity')).distinct().all()
+    severities = [s[0] for s in severities_res if s[0]]
+    
+    statuses = ["SUCCESS", "FAILED", "PENDING"]
+
+    return {
+        "sources": sources,
+        "formats": formats,
+        "severities": severities,
+        "statuses": statuses
+    }
+
 def get_stats(db: Session = Depends(get_db)):
     # Count normalizations and raw
     total_events = db.query(func.count(CanonicalEventRow.event_id)).scalar() or 0

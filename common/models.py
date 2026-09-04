@@ -61,3 +61,14 @@ class BatchRow(Base):
     event_count = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
     fake_tx_id = Column(String)
+
+class AuditLogEntry(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    username = Column(String, default="system")
+    action = Column(String)
+    event_id = Column(String, nullable=True)
+    source_id = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True)

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 import os
 
 from common.database import get_db
-from common.models import RawEventRow, CanonicalEventRow, IntegrityRecordRow, BatchRow, DLQRecordRow
+from common.models import RawEventRow, CanonicalEventRow, IntegrityRecordRow, BatchRow, DLQRecordRow, AuditLogEntry
 from ingestion.service import process_ingestion
 from ingestion.splitter import split_payload
 from observability.metrics import generate_latest, CONTENT_TYPE_LATEST, get_observability_json
@@ -23,8 +23,22 @@ def metrics():
 def observability():
     return get_observability_json()
 
-from typing import Any, Union, Dict, List
+from typing import Any, Union, Dict, List, Optional
 from fastapi import Body, APIRouter, Depends, HTTPException, Request
+from datetime import datetime
+
+# ── Audit Logging Helper ────────────────────────────────────────────
+def _log_audit(db: Session, request: Request, action: str, event_id: str = None, source_id: str = None):
+    """Write a lightweight audit log entry after a successful action."""
+    entry = AuditLogEntry(
+        username="system",  # placeholder until JWT auth is implemented
+        action=action,
+        event_id=event_id,
+        source_id=source_id,
+        ip_address=request.client.host if request.client else None,
+    )
+    db.add(entry)
+    db.commit()
 
 @router.post("/api/v1/ingest")
 def ingest(
@@ -228,7 +242,7 @@ def get_canonical_event(event_id: str, db: Session = Depends(get_db)):
     }
 
 @router.get("/api/v1/events/{event_id}/raw")
-def get_raw_event(event_id: str, db: Session = Depends(get_db)):
+def get_raw_event(event_id: str, request: Request, db: Session = Depends(get_db)):
     raw = db.query(RawEventRow).filter(RawEventRow.event_id == event_id).first()
     if not raw:
         raise HTTPException(status_code=404, detail="Raw event not found")
@@ -236,8 +250,10 @@ def get_raw_event(event_id: str, db: Session = Depends(get_db)):
     if os.path.exists(raw.storage_uri):
         with open(raw.storage_uri, "rb") as f:
             content = f.read()
+        _log_audit(db, request, "viewed_raw_evidence", event_id=event_id)
         return Response(content=content, media_type="application/octet-stream")
     else:
+        _log_audit(db, request, "viewed_raw_evidence", event_id=event_id)
         return Response(content=raw.payload, media_type="application/octet-stream")
 
 from integrity.chain import GENESIS_HASH, compute_normalized_hash
@@ -347,8 +363,10 @@ def verify_event_get(event_id: str, db: Session = Depends(get_db)):
     return _do_verify(event_id, db)
 
 @router.post("/api/v1/events/{event_id}/verify")
-def verify_event_post(event_id: str, db: Session = Depends(get_db)):
-    return _do_verify(event_id, db)
+def verify_event_post(event_id: str, request: Request, db: Session = Depends(get_db)):
+    result = _do_verify(event_id, db)
+    _log_audit(db, request, "verified_event", event_id=event_id)
+    return result
 
 @router.get("/api/v1/events/{event_id}/trust-score")
 def get_trust_score(event_id: str, db: Session = Depends(get_db)):
@@ -391,12 +409,11 @@ def trace_event(event_id: str, db: Session = Depends(get_db)):
     return res
 
 @router.get("/api/v1/events/{event_id}/custody-certificate")
-def get_custody_certificate(event_id: str, format: str = "json", db: Session = Depends(get_db)):
+def get_custody_certificate(event_id: str, request: Request, format: str = "json", db: Session = Depends(get_db)):
     if format == "pdf":
         raise HTTPException(status_code=501, detail="PDF format is not supported in this MVP (reportlab not installed, skipping to save unneeded complexity). JSON only.")
         
     import uuid
-    from datetime import datetime
     
     raw_row = db.query(RawEventRow).filter(RawEventRow.event_id == event_id).first()
     if not raw_row:
@@ -470,6 +487,7 @@ def get_custody_certificate(event_id: str, format: str = "json", db: Session = D
     cert_json = json.dumps(cert, separators=(',', ':'), sort_keys=True)
     cert["certificate_hash"] = hashlib.sha256(cert_json.encode("utf-8")).hexdigest()
     
+    _log_audit(db, request, "generated_certificate", event_id=event_id)
     return cert
 
 @router.get("/api/v1/dlq")
@@ -500,6 +518,66 @@ def get_dlq_record(event_id: str, db: Session = Depends(get_db)):
         "error_message": r.error_message,
         "attempt": r.attempt,
         "timestamp": r.timestamp
+    }
+
+# ── Audit Log ───────────────────────────────────────────────────────
+@router.get("/api/v1/audit")
+def list_audit_logs(
+    page: int = 1,
+    page_size: int = 25,
+    username: str = None,
+    action: str = None,
+    start_date: str = None,
+    end_date: str = None,
+    db: Session = Depends(get_db),
+):
+    if page_size > 100:
+        page_size = 100
+
+    query = db.query(AuditLogEntry)
+
+    if username:
+        query = query.filter(AuditLogEntry.username == username)
+    if action:
+        query = query.filter(AuditLogEntry.action == action)
+    if start_date:
+        try:
+            sd = datetime.fromisoformat(start_date)
+            query = query.filter(AuditLogEntry.timestamp >= sd)
+        except ValueError:
+            pass
+    if end_date:
+        try:
+            ed = datetime.fromisoformat(end_date)
+            query = query.filter(AuditLogEntry.timestamp <= ed)
+        except ValueError:
+            pass
+
+    total_events = query.count()
+    total_pages = max(1, (total_events + page_size - 1) // page_size)
+    offset = (page - 1) * page_size
+
+    entries = query.order_by(AuditLogEntry.timestamp.desc()).offset(offset).limit(page_size).all()
+
+    return {
+        "entries": [
+            {
+                "id": e.id,
+                "timestamp": e.timestamp.isoformat() if e.timestamp else None,
+                "username": e.username,
+                "action": e.action,
+                "event_id": e.event_id,
+                "source_id": e.source_id,
+                "ip_address": e.ip_address,
+            }
+            for e in entries
+        ],
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "total_events": total_events,
+            "total_pages": total_pages,
+        },
     }
 
 # Onboarding Endpoints
@@ -534,7 +612,7 @@ class ApproveSourceRequest(BaseModel):
     overrides: dict = {}
 
 @router.post("/api/v1/onboarding/pending/{source_id}/approve")
-def approve_pending_source(source_id: str, req: ApproveSourceRequest, db: Session = Depends(get_db)):
+def approve_pending_source(source_id: str, req: ApproveSourceRequest, request: Request, db: Session = Depends(get_db)):
     s = db.query(PendingSourceRow).filter(PendingSourceRow.source_id == source_id).first()
     if not s or s.status != "pending":
         raise HTTPException(status_code=404, detail="Pending source not found or not pending")
@@ -552,16 +630,18 @@ def approve_pending_source(source_id: str, req: ApproveSourceRequest, db: Sessio
     s.approved_mapping = final_mapping
     s.status = "approved"
     db.commit()
+    _log_audit(db, request, "approved_mapping", source_id=source_id)
     return {"status": "approved", "source_id": source_id, "approved_mapping": final_mapping}
 
 @router.post("/api/v1/onboarding/pending/{source_id}/reject")
-def reject_pending_source(source_id: str, db: Session = Depends(get_db)):
+def reject_pending_source(source_id: str, request: Request, db: Session = Depends(get_db)):
     s = db.query(PendingSourceRow).filter(PendingSourceRow.source_id == source_id).first()
     if not s or s.status != "pending":
         raise HTTPException(status_code=404, detail="Pending source not found or not pending")
     
     s.status = "rejected"
     db.commit()
+    _log_audit(db, request, "rejected_mapping", source_id=source_id)
     return {"status": "rejected", "source_id": source_id}
 
 # ── Playground ──────────────────────────────────────────────────────

@@ -179,6 +179,7 @@ def get_events_filters(db: Session = Depends(get_db)):
         "statuses": statuses
     }
 
+@router.get("/api/v1/stats")
 def get_stats(db: Session = Depends(get_db)):
     # Count normalizations and raw
     total_events = db.query(func.count(CanonicalEventRow.event_id)).scalar() or 0

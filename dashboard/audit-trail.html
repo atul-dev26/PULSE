@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE – Audit Trail</title>
+    <meta name="description" content="PULSE ULPF Audit Trail — immutable audit logs tracking who accessed what evidence, and when.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* ── Reset ───────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* ── Design Tokens ───────────────────────────── */
+        :root {
+            --bg: #F4F1EA;
+            --sidebar-bg: #2B2E23;
+            --sidebar-text: #C5C2B8;
+            --sidebar-active: #4A5D23;
+            --sidebar-active-text: #F4F1EA;
+            --accent: #4A5D23;
+            --accent-light: #5C7330;
+            --card-bg: #FFFFFF;
+            --card-border: #D4D0C6;
+            --text-primary: #2B2E23;
+            --text-secondary: #6B6860;
+            --text-muted: #9B978E;
+            --sev-high: #B83B3B;
+            --sev-medium: #C8922A;
+            --sev-low: #4A7C3F;
+            --sev-unknown: #9B978E;
+            --mono: 'JetBrains Mono', monospace;
+            --sans: 'Inter', -apple-system, sans-serif;
+            --serif: 'IBM Plex Serif', Georgia, serif;
+            --radius: 5px;
+            --sidebar-w: 220px;
+        }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* ── Sidebar ─────────────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-w);
+            min-height: 100vh;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 100;
+            transition: width 0.25s ease;
+            overflow-y: auto;
+        }
+        .sidebar.collapsed { width: 56px; }
+        .sidebar.collapsed .sidebar-brand-text,
+        .sidebar.collapsed .nav-label,
+        .sidebar.collapsed .nav-text,
+        .sidebar.collapsed .collapse-text { display: none; }
+        .sidebar.collapsed .sidebar-brand { justify-content: center; padding: 20px 8px; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding: 10px 8px; }
+
+        .sidebar-brand {
+            padding: 24px 20px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar-brand-icon {
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .sidebar-brand-icon svg { width: 32px; height: 32px; }
+        .sidebar-brand-text h1 {
+            font-family: var(--serif);
+            font-size: 22px;
+            font-weight: 700;
+            color: #F4F1EA;
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+        .sidebar-brand-text p {
+            font-size: 9px;
+            color: #8A8779;
+            margin-top: 3px;
+            line-height: 1.3;
+            letter-spacing: 0.3px;
+        }
+
+        .nav-section { padding: 0 12px; margin-top: 8px; }
+        .nav-section-label {
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #6B6860;
+            padding: 12px 8px 4px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--sidebar-text);
+            transition: all 0.15s ease;
+            text-decoration: none;
+            margin: 1px 0;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.06); color: #F4F1EA; }
+        .nav-item.active {
+            background: var(--sidebar-active);
+            color: var(--sidebar-active-text);
+            font-weight: 500;
+        }
+        .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+        .nav-item.active svg { opacity: 1; }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 12px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .collapse-btn {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px; border-radius: var(--radius);
+            cursor: pointer; font-size: 13px; color: var(--sidebar-text);
+            background: none; border: none; width: 100%;
+            transition: all 0.15s ease;
+        }
+        .collapse-btn:hover { background: rgba(255,255,255,0.06); color: #F4F1EA; }
+        .collapse-btn svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+
+        /* ── Main Content ────────────────────────────── */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-w);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: margin-left 0.25s ease;
+        }
+        .sidebar.collapsed ~ .main-content { margin-left: 56px; }
+
+        /* ── Header Bar ──────────────────────────────── */
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            height: 56px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--card-border);
+            gap: 16px;
+            position: sticky; top: 0; z-index: 50;
+        }
+        .header-hamburger {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-primary); display: flex; align-items: center;
+        }
+        .header-hamburger svg { width: 20px; height: 20px; }
+        .header-search {
+            flex: 1;
+            max-width: 460px;
+            position: relative;
+        }
+        .header-search input {
+            width: 100%;
+            padding: 8px 12px 8px 36px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            background: var(--card-bg);
+            font-family: var(--sans);
+            font-size: 13px;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .header-search input:focus { border-color: var(--accent); }
+        .header-search input::placeholder { color: var(--text-muted); }
+        .header-search .search-icon {
+            position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+        .header-search .search-icon svg { width: 16px; height: 16px; }
+        .header-right {
+            display: flex; align-items: center; gap: 16px; margin-left: auto;
+        }
+        .header-icon-btn {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-secondary); display: flex; align-items: center;
+            position: relative;
+        }
+        .header-icon-btn svg { width: 20px; height: 20px; }
+        .header-user {
+            display: flex; align-items: center; gap: 10px; cursor: pointer;
+        }
+        .header-user-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: var(--accent); display: flex; align-items: center; justify-content: center;
+        }
+        .header-user-avatar svg { width: 18px; height: 18px; color: #F4F1EA; }
+        .header-user-info { line-height: 1.3; }
+        .header-user-name { font-weight: 600; font-size: 13px; }
+        .header-user-role { font-size: 11px; color: var(--text-muted); }
+
+        /* ── Page Body ───────────────────────────────── */
+        .page-body { padding: 20px 24px; flex: 1; }
+
+        /* ── Page Title Area ─────────────────────────── */
+        .page-title-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+        .page-title {
+            font-family: var(--serif);
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .page-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .immutable-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: rgba(244, 241, 234, 0.6);
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+        }
+
+        /* ── Filter Bar ──────────────────────────────── */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .filter-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .filter-select {
+            padding: 8px 28px 8px 10px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            background: var(--card-bg);
+            font-family: var(--sans);
+            font-size: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6860' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+        }
+        .filter-select:focus { border-color: var(--accent); }
+        .filter-spacer { flex: 1; }
+        .filter-date-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .filter-date-input {
+            padding: 7px 10px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            background: var(--card-bg);
+            font-family: var(--sans);
+            font-size: 12px;
+            color: var(--text-primary);
+            cursor: pointer;
+            outline: none;
+        }
+        .filter-date-input:focus { border-color: var(--accent); }
+
+        /* ── Audit Table ─────────────────────────────── */
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead th {
+            padding: 10px 12px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+            background: rgba(244, 241, 234, 0.5);
+            white-space: nowrap;
+            user-select: none;
+        }
+        thead th.sortable {
+            cursor: pointer;
+        }
+        thead th.sortable:hover {
+            color: var(--text-primary);
+        }
+        thead th .sort-arrow {
+            display: inline-block;
+            margin-left: 4px;
+            font-size: 10px;
+            opacity: 0.5;
+        }
+        thead th.sort-active .sort-arrow {
+            opacity: 1;
+            color: var(--accent);
+        }
+        tbody td {
+            padding: 10px 12px;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(212, 208, 198, 0.4);
+            vertical-align: middle;
+        }
+        tbody tr:hover { background: rgba(74, 93, 35, 0.03); }
+        tbody tr:last-child td { border-bottom: none; }
+
+        .cell-timestamp {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .cell-user {
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .cell-event-id {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .cell-event-id-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .copy-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            color: var(--text-muted);
+            transition: color 0.15s;
+        }
+        .copy-btn:hover { color: var(--accent); }
+        .copy-btn svg { width: 13px; height: 13px; }
+        .cell-ip {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        /* ── Action Badges ───────────────────────────── */
+        .action-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        /* Verified Event — olive/forest-green */
+        .action-badge.verified_event,
+        .action-badge.verified-event {
+            background: rgba(74, 93, 35, 0.12);
+            color: #4A5D23;
+        }
+        /* Viewed Raw Evidence — muted amber */
+        .action-badge.viewed_raw_evidence,
+        .action-badge.viewed-raw-evidence {
+            background: rgba(200, 146, 42, 0.12);
+            color: #8B6914;
+        }
+        /* Generated Certificate — forest green (darker) */
+        .action-badge.generated_certificate,
+        .action-badge.generated-certificate {
+            background: rgba(74, 124, 63, 0.12);
+            color: #3D6B33;
+        }
+        /* Approved Mapping — olive-amber */
+        .action-badge.approved_mapping,
+        .action-badge.approved-mapping {
+            background: rgba(139, 157, 106, 0.18);
+            color: #5C6B3A;
+        }
+        /* Rejected Mapping — brick-red */
+        .action-badge.rejected_mapping,
+        .action-badge.rejected-mapping {
+            background: rgba(184, 59, 59, 0.10);
+            color: #A03030;
+        }
+
+        /* ── Table Footer / Pagination ───────────────── */
+        .table-footer {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-top: 1px solid var(--card-border);
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .table-footer-info { flex: 1; }
+        .pagination {
+            display: flex; align-items: center; gap: 4px;
+        }
+        .page-btn {
+            width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            background: var(--card-bg);
+            font-family: var(--sans);
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.15s;
+        }
+        .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .page-btn.active {
+            background: var(--accent); color: #fff;
+            border-color: var(--accent);
+        }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .page-btn.nav-btn { font-size: 14px; }
+        .page-ellipsis {
+            width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; color: var(--text-muted);
+        }
+        .table-footer-right {
+            flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 8px;
+        }
+        .page-size-select {
+            padding: 5px 24px 5px 8px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            background: var(--card-bg);
+            font-family: var(--sans);
+            font-size: 12px;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6860' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 6px center;
+        }
+
+        /* ── Footer Bar ──────────────────────────────── */
+        .footer {
+            display: flex;
+            align-items: center;
+            padding: 12px 24px;
+            border-top: 1px solid var(--card-border);
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg);
+        }
+        .footer-left { flex: 1; }
+        .footer-center {
+            display: flex; align-items: center; justify-content: center;
+        }
+        .footer-center svg { width: 20px; height: 20px; opacity: 0.3; }
+        .footer-right {
+            flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 16px;
+        }
+        .footer-dot {
+            display: inline-block; width: 6px; height: 6px;
+            background: var(--sev-low); border-radius: 50%; margin-right: 6px;
+        }
+
+        /* ── Toast ───────────────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 20px; right: 20px;
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            color: #fff;
+            z-index: 2000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .toast.success { background: var(--sev-low); }
+        .toast.error { background: var(--sev-high); }
+        .toast.info { background: var(--accent); }
+
+        /* responsive */
+        @media (max-width: 900px) {
+            .sidebar { width: 56px; }
+            .sidebar .sidebar-brand-text,
+            .sidebar .nav-label, .sidebar .nav-text, .sidebar .collapse-text { display: none; }
+            .main-content { margin-left: 56px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════ SIDEBAR ══ -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4C14 4 10 8 10 14C10 20 14 28 20 36C26 28 30 20 30 14C30 8 26 4 20 4Z" stroke="#8B9D6A" stroke-width="1.5" fill="none"/>
+                <circle cx="20" cy="14" r="4" stroke="#8B9D6A" stroke-width="1.5" fill="none"/>
+                <path d="M6 20Q20 26 34 20" stroke="#8B9D6A" stroke-width="1" fill="none" opacity="0.5"/>
+                <path d="M8 24Q20 30 32 24" stroke="#8B9D6A" stroke-width="1" fill="none" opacity="0.3"/>
+            </svg>
+        </div>
+        <div class="sidebar-brand-text">
+            <h1>PULSE</h1>
+            <p>Universal Log Processing &<br>Security Environment</p>
+        </div>
+    </div>
+
+    <nav class="nav-section">
+        <div class="nav-section-label nav-label">OVERVIEW</div>
+        <a class="nav-item" id="nav-dashboard" href="/dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span class="nav-text">Dashboard</span>
+        </a>
+        <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span class="nav-text">Events</span>
+        </a>
+    </nav>
+    <nav class="nav-section">
+        <div class="nav-section-label nav-label">PROCESSING</div>
+        <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            <span class="nav-text">Normalization</span>
+        </a>
+        <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span class="nav-text">Quarantine</span>
+        </a>
+        <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            <span class="nav-text">Merkle Batches</span>
+        </a>
+    </nav>
+    <nav class="nav-section">
+        <div class="nav-section-label nav-label">SECURITY</div>
+        <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="nav-text">Alerts</span>
+        </a>
+        <a class="nav-item active" id="nav-audit" href="/audit-trail">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <span class="nav-text">Audit Trail</span>
+        </a>
+    </nav>
+    <nav class="nav-section">
+        <div class="nav-section-label nav-label">SYSTEM</div>
+        <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <span class="nav-text">Sources</span>
+        </a>
+        <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <span class="nav-text">Integrations</span>
+        </a>
+        <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span class="nav-text">Settings</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+            <span class="collapse-text">Collapse</span>
+        </button>
+    </div>
+</aside>
+
+<!-- ══════════════════════════════════════════════════ MAIN ══ -->
+<div class="main-content">
+
+    <!-- Header -->
+    <header class="header">
+        <button class="header-hamburger" onclick="toggleSidebar()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="header-search">
+            <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            <input type="text" id="globalSearch" placeholder="Search events, IDs, sources...">
+        </div>
+        <div class="header-right">
+            <button class="header-icon-btn" title="Notifications">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </button>
+            <div class="header-user">
+                <div class="header-user-avatar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div class="header-user-info">
+                    <div class="header-user-name">Admin User</div>
+                    <div class="header-user-role">System Administrator</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Body -->
+    <div class="page-body">
+
+        <!-- Page Title -->
+        <div class="page-title-row">
+            <div>
+                <h1 class="page-title">Audit Trail</h1>
+                <p class="page-subtitle">Who accessed what evidence, and when.</p>
+            </div>
+            <span class="immutable-badge">Immutable Audit Logs</span>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <span class="filter-label">User</span>
+            <select class="filter-select" id="filterUser"><option value="">All Users</option></select>
+
+            <span class="filter-label">Action Type</span>
+            <select class="filter-select" id="filterAction">
+                <option value="">All Actions</option>
+                <option value="verified_event">Verified Event</option>
+                <option value="viewed_raw_evidence">Viewed Raw Evidence</option>
+                <option value="generated_certificate">Generated Certificate</option>
+                <option value="approved_mapping">Approved Mapping</option>
+                <option value="rejected_mapping">Rejected Mapping</option>
+            </select>
+
+            <div class="filter-spacer"></div>
+
+            <span class="filter-label">Date Range</span>
+            <div class="filter-date-group">
+                <input type="date" class="filter-date-input" id="filterStartDate" title="Start date">
+                <span style="color:var(--text-muted);font-size:11px;">to</span>
+                <input type="date" class="filter-date-input" id="filterEndDate" title="End date">
+            </div>
+        </div>
+
+        <!-- Audit Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="sortable sort-active" id="thTimestamp" onclick="toggleSort()">
+                            Timestamp <span class="sort-arrow" id="sortArrow">↓</span>
+                        </th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Event ID</th>
+                        <th>IP Address</th>
+                    </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                    <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">Loading audit logs...</td></tr>
+                </tbody>
+            </table>
+            <div class="table-footer">
+                <div class="table-footer-info" id="tableInfo">Showing 0 results</div>
+                <div class="pagination" id="pagination"></div>
+                <div class="table-footer-right">
+                    <span>Show</span>
+                    <select class="page-size-select" id="pageSizeSelect">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-left">© 2025 PULSE – ULPF. All rights reserved.</div>
+        <div class="footer-center">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4C14 4 10 8 10 14C10 20 14 28 20 36C26 28 30 20 30 14C30 8 26 4 20 4Z" stroke="#8B9D6A" stroke-width="1.5" fill="none"/>
+                <circle cx="20" cy="14" r="4" stroke="#8B9D6A" stroke-width="1.5" fill="none"/>
+            </svg>
+        </div>
+        <div class="footer-right">
+            <span><span class="footer-dot"></span>System Time: <span id="footerClock"></span> IST</span>
+            <span>v1.0.0</span>
+        </div>
+    </footer>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// PULSE Audit Trail — JavaScript
+// ═══════════════════════════════════════════════════════════════
+
+const API_BASE = '';
+let currentPage = 1;
+let currentPageSize = 50;
+let sortDirection = 'desc'; // 'desc' = newest first (default), 'asc' = oldest first
+let currentFilters = { username: '', action: '', start_date: '', end_date: '' };
+
+// ── Sidebar Toggle ──────────────────────────────────────
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// ── Clock ───────────────────────────────────────────────
+function updateClock() {
+    const now = new Date();
+    const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    const y = ist.getUTCFullYear();
+    const mo = String(ist.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(ist.getUTCDate()).padStart(2, '0');
+    const h = String(ist.getUTCHours()).padStart(2, '0');
+    const mi = String(ist.getUTCMinutes()).padStart(2, '0');
+    const s = String(ist.getUTCSeconds()).padStart(2, '0');
+    document.getElementById('footerClock').textContent = `${y}-${mo}-${d} ${h}:${mi}:${s}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Toast ───────────────────────────────────────────────
+function showToast(msg, type = 'info') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + type + ' show';
+    setTimeout(() => { t.classList.remove('show'); }, 3000);
+}
+
+// ── Number Formatting ───────────────────────────────────
+function fmtNum(n) {
+    if (n == null) return '—';
+    return Number(n).toLocaleString('en-US');
+}
+
+// ── Action Display Labels ───────────────────────────────
+function actionLabel(action) {
+    const labels = {
+        'verified_event': 'Verified Event',
+        'viewed_raw_evidence': 'Viewed Raw Evidence',
+        'generated_certificate': 'Generated Certificate',
+        'approved_mapping': 'Approved Mapping',
+        'rejected_mapping': 'Rejected Mapping'
+    };
+    return labels[action] || action;
+}
+
+// ── Copy to Clipboard ───────────────────────────────────
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard', 'success');
+    }).catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Copied to clipboard', 'success');
+    });
+}
+
+// ── Sort Toggle ─────────────────────────────────────────
+function toggleSort() {
+    sortDirection = sortDirection === 'desc' ? 'asc' : 'desc';
+    document.getElementById('sortArrow').textContent = sortDirection === 'desc' ? '↓' : '↑';
+    currentPage = 1;
+    fetchAuditLogs();
+}
+
+// ── Populate User Dropdown ──────────────────────────────
+async function populateUsers() {
+    try {
+        // Fetch first page with large page_size to extract distinct usernames
+        const res = await fetch(API_BASE + '/api/v1/audit?page=1&page_size=100');
+        if (!res.ok) return;
+        const data = await res.json();
+        const entries = data.entries || [];
+        const userSet = new Set();
+        entries.forEach(e => { if (e.username) userSet.add(e.username); });
+
+        // If there are more pages, fetch additional to find all distinct users
+        const totalPages = (data.pagination && data.pagination.total_pages) || 1;
+        if (totalPages > 1) {
+            // Fetch a sample from later pages to catch more usernames
+            const pagesToFetch = Math.min(totalPages, 5);
+            for (let p = 2; p <= pagesToFetch; p++) {
+                try {
+                    const r = await fetch(API_BASE + '/api/v1/audit?page=' + p + '&page_size=100');
+                    if (r.ok) {
+                        const d = await r.json();
+                        (d.entries || []).forEach(e => { if (e.username) userSet.add(e.username); });
+                    }
+                } catch (e) { /* ignore */ }
+            }
+        }
+
+        const sel = document.getElementById('filterUser');
+        sel.innerHTML = '<option value="">All Users</option>';
+        Array.from(userSet).sort().forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u;
+            // Capitalize for display
+            opt.textContent = u.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            sel.appendChild(opt);
+        });
+    } catch (e) {
+        console.error('Failed to populate users:', e);
+    }
+}
+
+// ── Fetch Audit Logs ────────────────────────────────────
+async function fetchAuditLogs() {
+    try {
+        let url = API_BASE + '/api/v1/audit?page=' + currentPage + '&page_size=' + currentPageSize;
+        if (currentFilters.username) url += '&username=' + encodeURIComponent(currentFilters.username);
+        if (currentFilters.action) url += '&action=' + encodeURIComponent(currentFilters.action);
+        if (currentFilters.start_date) url += '&start_date=' + encodeURIComponent(currentFilters.start_date);
+        if (currentFilters.end_date) url += '&end_date=' + encodeURIComponent(currentFilters.end_date);
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('audit fetch failed');
+        const data = await res.json();
+
+        let entries = data.entries || [];
+
+        // Client-side sort by timestamp (the API always returns desc — we flip if needed)
+        if (sortDirection === 'asc') {
+            entries = entries.slice().sort((a, b) => {
+                const ta = a.timestamp || '';
+                const tb = b.timestamp || '';
+                return ta < tb ? -1 : ta > tb ? 1 : 0;
+            });
+        }
+
+        renderAuditTable(entries);
+        renderPagination(data.pagination || {});
+    } catch (e) {
+        console.error('Audit fetch error:', e);
+        document.getElementById('auditTableBody').innerHTML =
+            '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--sev-high)">Failed to load audit logs</td></tr>';
+    }
+}
+
+// ── Render Table ────────────────────────────────────────
+function renderAuditTable(entries) {
+    const tbody = document.getElementById('auditTableBody');
+    if (!entries.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">No audit logs found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = entries.map(e => {
+        // Timestamp
+        const ts = e.timestamp || '';
+        const tsDisplay = ts ? ts.replace('T', ' ').replace(/\.\d+$/, '').substring(0, 23) : '—';
+
+        // User
+        const user = e.username
+            ? e.username.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            : '—';
+
+        // Action badge
+        const actionClass = (e.action || '').replace(/ /g, '_').toLowerCase();
+        const actionText = actionLabel(e.action || '');
+
+        // Event ID (truncated with copy icon, only if present)
+        let eventIdCell = '<span style="color:var(--text-muted)">—</span>';
+        if (e.event_id) {
+            const eidFull = e.event_id;
+            const eidShort = eidFull.length > 32 ? eidFull.substring(0, 32) + '…' : eidFull;
+            eventIdCell = `<span class="cell-event-id-wrapper">
+                <span title="${eidFull}">${eidShort}</span>
+                <button class="copy-btn" onclick="copyToClipboard('${eidFull}')" title="Copy full ID">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+            </span>`;
+        }
+
+        // IP Address
+        const ip = e.ip_address || '—';
+
+        return `<tr>
+            <td class="cell-timestamp">${tsDisplay}</td>
+            <td class="cell-user">${user}</td>
+            <td><span class="action-badge ${actionClass}">${actionText}</span></td>
+            <td class="cell-event-id">${eventIdCell}</td>
+            <td class="cell-ip">${ip}</td>
+        </tr>`;
+    }).join('');
+}
+
+// ── Render Pagination ───────────────────────────────────
+function renderPagination(pag) {
+    const { page = 1, page_size = 50, total_events = 0, total_pages = 1 } = pag;
+    const start = total_events === 0 ? 0 : Math.min((page - 1) * page_size + 1, total_events);
+    const end = Math.min(page * page_size, total_events);
+
+    document.getElementById('tableInfo').textContent =
+        `Audit Log Results · Showing ${start} to ${end} of ${fmtNum(total_events)} Logs`;
+
+    const container = document.getElementById('pagination');
+    container.innerHTML = '';
+
+    // Prev button
+    const prev = document.createElement('button');
+    prev.className = 'page-btn nav-btn';
+    prev.innerHTML = '‹';
+    prev.disabled = page <= 1;
+    prev.onclick = () => { currentPage = page - 1; fetchAuditLogs(); };
+    container.appendChild(prev);
+
+    // Page numbers
+    const pages = getPageNumbers(page, total_pages);
+    pages.forEach(p => {
+        if (p === '...') {
+            const el = document.createElement('span');
+            el.className = 'page-ellipsis';
+            el.textContent = '…';
+            container.appendChild(el);
+        } else {
+            const btn = document.createElement('button');
+            btn.className = 'page-btn' + (p === page ? ' active' : '');
+            btn.textContent = p;
+            btn.onclick = () => { currentPage = p; fetchAuditLogs(); };
+            container.appendChild(btn);
+        }
+    });
+
+    // Next button
+    const next = document.createElement('button');
+    next.className = 'page-btn nav-btn';
+    next.innerHTML = '›';
+    next.disabled = page >= total_pages;
+    next.onclick = () => { currentPage = page + 1; fetchAuditLogs(); };
+    container.appendChild(next);
+}
+
+function getPageNumbers(current, total) {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages = [];
+    if (current <= 4) {
+        for (let i = 1; i <= 5; i++) pages.push(i);
+        pages.push('...', total);
+    } else if (current >= total - 3) {
+        pages.push(1, '...');
+        for (let i = total - 4; i <= total; i++) pages.push(i);
+    } else {
+        pages.push(1, '...', current - 1, current, current + 1, '...', total);
+    }
+    return pages;
+}
+
+// ── Filter Event Handlers ───────────────────────────────
+document.getElementById('filterUser').addEventListener('change', function() {
+    currentFilters.username = this.value;
+    currentPage = 1;
+    fetchAuditLogs();
+});
+document.getElementById('filterAction').addEventListener('change', function() {
+    currentFilters.action = this.value;
+    currentPage = 1;
+    fetchAuditLogs();
+});
+document.getElementById('filterStartDate').addEventListener('change', function() {
+    currentFilters.start_date = this.value;
+    currentPage = 1;
+    fetchAuditLogs();
+});
+document.getElementById('filterEndDate').addEventListener('change', function() {
+    currentFilters.end_date = this.value;
+    currentPage = 1;
+    fetchAuditLogs();
+});
+document.getElementById('pageSizeSelect').addEventListener('change', function() {
+    currentPageSize = parseInt(this.value);
+    currentPage = 1;
+    fetchAuditLogs();
+});
+
+// Keyboard shortcut Ctrl+/
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === '/') {
+        e.preventDefault();
+        document.getElementById('globalSearch').focus();
+    }
+});
+
+// ── Initialize ──────────────────────────────────────────
+async function init() {
+    await populateUsers();
+    await fetchAuditLogs();
+}
+
+init();
+</script>
+</body>
+</html>

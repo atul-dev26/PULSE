@@ -50,6 +50,10 @@ def serve_dashboard():
 def serve_playground():
     return FileResponse("dashboard/playground.html")
 
+@app.get("/audit-trail")
+def serve_audit_trail():
+    return FileResponse("dashboard/audit-trail.html")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

@@ -382,6 +382,23 @@
             color: var(--text-muted);
         }
 
+        .header-logout-btn {
+            background: none;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 6px 12px;
+            font-family: var(--sans);
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .header-logout-btn:hover {
+            border-color: var(--sev-high);
+            color: var(--sev-high);
+        }
+
         /* ── Page Body ───────────────────────────────── */
         .page-body {
             padding: 32px 40px;
@@ -715,7 +732,7 @@
     </style>
 </head>
 
-<body>
+<body data-auth-required="true">
 
     <!-- ══════════════════════════════════════════════════ SIDEBAR ══ -->
     <aside class="sidebar" id="sidebar">
@@ -771,7 +788,7 @@
                 </svg>
                 <span class="nav-text">Normalization</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/dlq">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
@@ -794,7 +811,7 @@
                 </svg>
                 <span class="nav-text">Alerts</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/audit-trail">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 20h9" />
                     <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
@@ -812,7 +829,7 @@
         </nav>
         <nav class="nav-section">
             <div class="nav-section-label nav-label">SYSTEM</div>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/onboarding">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                     <line x1="8" y1="21" x2="16" y2="21" />
@@ -869,6 +886,7 @@
                         <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                     </svg>
                 </button>
+                <button type="button" class="header-logout-btn" onclick="PulseAuth.logout()" title="Sign out">Logout</button>
                 <div class="header-user">
                     <div class="header-user-avatar">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -876,7 +894,7 @@
                         </svg>
                     </div>
                     <div class="header-user-info">
-                        <div class="header-user-name">Admin User</div>
+                        <div class="header-user-name" id="headerUserName">—</div>
                         <div class="header-user-role">System Administrator</div>
                     </div>
                 </div>
@@ -981,6 +999,7 @@
         </footer>
     </div>
 
+    <script src="/assets/js/auth.js"></script>
     <script>
         // ── Sidebar & Clock ─────────────────────────────────────
         function toggleSidebar() {
@@ -1026,7 +1045,6 @@
             btn.disabled = true;
             btn.innerHTML = 'Processing...';
 
-            // Reset stages
             document.getElementById('emptyState').style.opacity = '0';
             const container = document.getElementById('stagesContainer');
             container.classList.remove('visible');
@@ -1040,7 +1058,6 @@
             });
 
             try {
-                // Support raw payload directly as per ingest spec
                 let reqBody;
                 try {
                     reqBody = JSON.parse(payload);
@@ -1048,7 +1065,7 @@
                     reqBody = payload;
                 }
 
-                const res = await fetch('/api/v1/playground/process', {
+                const res = await PulseAuth.fetch('/api/v1/playground/process', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ payload: reqBody })
@@ -1109,9 +1126,9 @@
                 }
             }
         }
-    </script>
 
-    <script src="/static/smooth-cursor.js"></script>
+        PulseAuth.requireAuth();
+    </script>
     <script src="/static/theme-toggler.js"></script>
 </body>
 

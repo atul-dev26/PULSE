@@ -377,6 +377,23 @@
             color: var(--text-muted);
         }
 
+        .header-logout-btn {
+            background: none;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            padding: 6px 12px;
+            font-family: var(--sans);
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .header-logout-btn:hover {
+            border-color: var(--sev-high);
+            color: var(--sev-high);
+        }
+
         /* ── Page Body ───────────────────────────────── */
         .page-body {
             padding: 20px 24px;
@@ -399,6 +416,18 @@
             display: flex;
             align-items: flex-start;
             gap: 12px;
+        }
+
+        .stat-card-clickable {
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .stat-card-clickable:hover {
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(74, 93, 35, 0.08);
         }
 
         .stat-card-icon {
@@ -1136,7 +1165,7 @@
     </style>
 </head>
 
-<body>
+<body data-auth-required="true">
 
     <!-- Splash Screen -->
     <div id="splash-screen" style="display: none;">
@@ -1199,7 +1228,7 @@
                 </svg>
                 <span class="nav-text">Normalization</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/dlq">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
@@ -1240,7 +1269,7 @@
         </nav>
         <nav class="nav-section">
             <div class="nav-section-label nav-label">SYSTEM</div>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/onboarding">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
                     <line x1="8" y1="21" x2="16" y2="21" />
@@ -1302,6 +1331,7 @@
                         <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                     </svg>
                 </button>
+                <button type="button" class="header-logout-btn" onclick="PulseAuth.logout()" title="Sign out">Logout</button>
                 <div class="header-user">
                     <div class="header-user-avatar">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1309,7 +1339,7 @@
                         </svg>
                     </div>
                     <div class="header-user-info">
-                        <div class="header-user-name">Admin User</div>
+                        <div class="header-user-name" id="headerUserName">—</div>
                         <div class="header-user-role">System Administrator</div>
                     </div>
                 </div>
@@ -1345,7 +1375,7 @@
                         <div class="stat-card-sub" id="stat-healthy-sub">Loading...</div>
                     </div>
                 </div>
-                <div class="stat-card">
+                <a class="stat-card stat-card-clickable" href="/dlq" title="View quarantined events">
                     <div class="stat-card-icon" style="background:rgba(184,59,59,0.08)"><svg viewBox="0 0 24 24"
                             fill="none" stroke="var(--sev-high)" stroke-width="2">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -1355,7 +1385,7 @@
                         <div class="stat-card-value" id="stat-dlq">—</div>
                         <div class="stat-card-sub" id="stat-dlq-sub">Loading...</div>
                     </div>
-                </div>
+                </a>
                 <div class="stat-card">
                     <div class="stat-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
@@ -1380,7 +1410,7 @@
                         <div class="stat-card-sub" id="stat-batches-sub">Loading...</div>
                     </div>
                 </div>
-                <div class="stat-card">
+                <a class="stat-card stat-card-clickable" href="/onboarding" title="Review pending source mappings">
                     <div class="stat-card-icon" style="background:rgba(200,146,42,0.08)"><svg viewBox="0 0 24 24"
                             fill="none" stroke="var(--sev-medium)" stroke-width="2">
                             <circle cx="12" cy="12" r="10" />
@@ -1390,11 +1420,9 @@
                     <div>
                         <div class="stat-card-label">Pending Actions</div>
                         <div class="stat-card-value" id="stat-pending">—</div>
-                        <!-- NOTE: The /api/v1/stats endpoint doesn't return a specific "pending actions" count.
-                         Using DLQ count as a proxy. If a dedicated pending-actions count is needed, the backend must be extended. -->
                         <div class="stat-card-sub attention" id="stat-pending-sub">Loading...</div>
                     </div>
-                </div>
+                </a>
             </div>
 
             <!-- Filter Bar -->
@@ -1520,6 +1548,7 @@
     <!-- Toast -->
     <div class="toast" id="toast"></div>
 
+    <script src="/assets/js/auth.js"></script>
     <script>
         // ═══════════════════════════════════════════════════════════════
         // PULSE Dashboard — JavaScript
@@ -1602,7 +1631,7 @@
         // ── Fetch Stats ─────────────────────────────────────────
         async function fetchStats() {
             try {
-                const res = await fetch(API_BASE + '/api/v1/stats');
+                const res = await PulseAuth.fetch(API_BASE + '/api/v1/stats');
                 if (!res.ok) throw new Error('stats fetch failed');
                 const d = await res.json();
 
@@ -1628,10 +1657,19 @@
                     ? 'Latest: #' + d.last_batch_merkle_root.substring(0, 8)
                     : 'No batches yet';
 
-                // NOTE: /api/v1/stats doesn't return a specific "pending actions" count.
-                // Using DLQ count as proxy for pending actions that need attention.
-                document.getElementById('stat-pending').textContent = fmtNum(d.dlq_count);
-                document.getElementById('stat-pending-sub').textContent = d.dlq_count > 0 ? 'Requires attention' : 'All clear';
+                let pendingCount = 0;
+                try {
+                    const pendingRes = await PulseAuth.fetch(API_BASE + '/api/v1/onboarding/pending');
+                    if (pendingRes.ok) {
+                        const pending = await pendingRes.json();
+                        pendingCount = Array.isArray(pending) ? pending.length : 0;
+                    }
+                } catch (e) { /* onboarding count optional */ }
+
+                document.getElementById('stat-pending').textContent = fmtNum(pendingCount);
+                document.getElementById('stat-pending-sub').textContent = pendingCount > 0
+                    ? pendingCount + ' source' + (pendingCount === 1 ? '' : 's') + ' awaiting review'
+                    : 'All clear';
             } catch (e) {
                 console.error('Stats error:', e);
             }
@@ -1640,7 +1678,7 @@
         // ── Fetch Filters ───────────────────────────────────────
         async function fetchFilters() {
             try {
-                const res = await fetch(API_BASE + '/api/v1/events/filters');
+                const res = await PulseAuth.fetch(API_BASE + '/api/v1/events/filters');
                 if (!res.ok) throw new Error('filters fetch failed');
                 const d = await res.json();
 
@@ -1675,7 +1713,7 @@
                 if (currentFilters.severity) url += '&severity=' + encodeURIComponent(currentFilters.severity);
                 if (currentFilters.format) url += '&format=' + encodeURIComponent(currentFilters.format);
 
-                const res = await fetch(url);
+                const res = await PulseAuth.fetch(url);
                 if (!res.ok) throw new Error('events fetch failed');
                 const data = await res.json();
 
@@ -1832,7 +1870,7 @@
         async function verifyEvent(eventId) {
             try {
                 showToast('Verifying event ' + eventId.substring(0, 12) + '...', 'info');
-                const res = await fetch(API_BASE + '/api/v1/events/' + eventId + '/verify', { method: 'POST' });
+                const res = await PulseAuth.fetch(API_BASE + '/api/v1/events/' + eventId + '/verify', { method: 'POST' });
                 if (!res.ok) throw new Error('Verify failed');
                 const data = await res.json();
 
@@ -1855,7 +1893,7 @@
 
                 // Also try to update trust score inline
                 try {
-                    const tsRes = await fetch(API_BASE + '/api/v1/events/' + eventId + '/trust-score');
+                    const tsRes = await PulseAuth.fetch(API_BASE + '/api/v1/events/' + eventId + '/trust-score');
                     if (tsRes.ok) {
                         const tsData = await tsRes.json();
                         if (row && tsData.trust_score != null) {
@@ -1880,7 +1918,7 @@
             document.getElementById('rawModalContent').textContent = 'Loading...';
 
             try {
-                const res = await fetch(API_BASE + '/api/v1/events/' + eventId + '/raw');
+                const res = await PulseAuth.fetch(API_BASE + '/api/v1/events/' + eventId + '/raw');
                 if (!res.ok) throw new Error('Raw fetch failed');
                 const text = await res.text();
                 // Try to prettify JSON
@@ -1951,6 +1989,7 @@
 
         // ── Initialize ──────────────────────────────────────────
         async function init() {
+            await PulseAuth.requireAuth();
             await Promise.all([fetchStats(), fetchFilters()]);
             await fetchEvents();
             startAutoRefresh();

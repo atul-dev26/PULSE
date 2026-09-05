@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from common.database import engine, Base
 from api.endpoints import router
+from auth.routes import router as auth_router
+from auth.seed import seed_default_user
 import os
 import asyncio
 from contextlib import asynccontextmanager
@@ -11,6 +13,7 @@ from ingestion.udp_server import start_udp_server
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
+seed_default_user()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,6 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(router)
 
 # Serve dynamic assets from static folder
@@ -44,6 +48,10 @@ app.mount("/assets", StaticFiles(directory="static"), name="assets")
 
 # Serve dashboard static files
 app.mount("/static", StaticFiles(directory="dashboard"), name="static")
+
+@app.get("/login")
+def serve_login():
+    return FileResponse("dashboard/login.html")
 
 @app.get("/dashboard")
 def serve_dashboard():
@@ -56,6 +64,14 @@ def serve_playground():
 @app.get("/audit-trail")
 def serve_audit_trail():
     return FileResponse("dashboard/audit-trail.html")
+
+@app.get("/onboarding")
+def serve_onboarding():
+    return FileResponse("dashboard/onboarding.html")
+
+@app.get("/dlq")
+def serve_dlq():
+    return FileResponse("dashboard/dlq.html")
 
 if __name__ == "__main__":
     import uvicorn

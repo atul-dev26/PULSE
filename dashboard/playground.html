@@ -1,18 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PULSE – Playground</title>
-    
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
 
     <style>
         /* ── Reset ───────────────────────────────────── */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         /* ── Design Tokens ───────────────────────────── */
         :root {
@@ -58,18 +67,33 @@
             display: flex;
             flex-direction: column;
             position: fixed;
-            top: 0; left: 0;
+            top: 0;
+            left: 0;
             z-index: 100;
             transition: width 0.25s ease;
             overflow-y: auto;
         }
-        .sidebar.collapsed { width: 56px; }
+
+        .sidebar.collapsed {
+            width: 56px;
+        }
+
         .sidebar.collapsed .sidebar-brand-text,
         .sidebar.collapsed .nav-label,
         .sidebar.collapsed .nav-text,
-        .sidebar.collapsed .collapse-text { display: none; }
-        .sidebar.collapsed .sidebar-brand { justify-content: center; padding: 20px 8px; }
-        .sidebar.collapsed .nav-item { justify-content: center; padding: 10px 8px; }
+        .sidebar.collapsed .collapse-text {
+            display: none;
+        }
+
+        .sidebar.collapsed .sidebar-brand {
+            justify-content: center;
+            padding: 20px 8px;
+        }
+
+        .sidebar.collapsed .nav-item {
+            justify-content: center;
+            padding: 10px 8px;
+        }
 
         .sidebar-brand {
             padding: 24px 20px 16px;
@@ -77,12 +101,21 @@
             align-items: center;
             gap: 12px;
         }
+
         .sidebar-brand-icon {
-            width: 36px; height: 36px;
-            display: flex; align-items: center; justify-content: center;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             flex-shrink: 0;
         }
-        .sidebar-brand-icon svg { width: 32px; height: 32px; }
+
+        .sidebar-brand-icon svg {
+            width: 32px;
+            height: 32px;
+        }
+
         .sidebar-brand-text h1 {
             font-family: var(--serif);
             font-size: 22px;
@@ -91,6 +124,7 @@
             letter-spacing: 2px;
             line-height: 1;
         }
+
         .sidebar-brand-text p {
             font-size: 9px;
             color: #8A8779;
@@ -99,7 +133,11 @@
             letter-spacing: 0.3px;
         }
 
-        .nav-section { padding: 0 12px; margin-top: 8px; }
+        .nav-section {
+            padding: 0 12px;
+            margin-top: 8px;
+        }
+
         .nav-section-label {
             font-size: 9px;
             font-weight: 600;
@@ -108,6 +146,7 @@
             color: #6B6860;
             padding: 12px 8px 4px;
         }
+
         .nav-item {
             display: flex;
             align-items: center;
@@ -122,29 +161,61 @@
             text-decoration: none;
             margin: 1px 0;
         }
-        .nav-item:hover { background: rgba(255,255,255,0.06); color: #F4F1EA; }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #F4F1EA;
+        }
+
         .nav-item.active {
             background: var(--sidebar-active);
             color: var(--sidebar-active-text);
             font-weight: 500;
         }
-        .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
-        .nav-item.active svg { opacity: 1; }
+
+        .nav-item svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            opacity: 0.7;
+        }
+
+        .nav-item.active svg {
+            opacity: 1;
+        }
 
         .sidebar-footer {
             margin-top: auto;
             padding: 12px;
-            border-top: 1px solid rgba(255,255,255,0.06);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
         }
+
         .collapse-btn {
-            display: flex; align-items: center; gap: 10px;
-            padding: 9px 12px; border-radius: var(--radius);
-            cursor: pointer; font-size: 13px; color: var(--sidebar-text);
-            background: none; border: none; width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--sidebar-text);
+            background: none;
+            border: none;
+            width: 100%;
             transition: all 0.15s ease;
         }
-        .collapse-btn:hover { background: rgba(255,255,255,0.06); color: #F4F1EA; }
-        .collapse-btn svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+
+        .collapse-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #F4F1EA;
+        }
+
+        .collapse-btn svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            opacity: 0.7;
+        }
 
         /* ── Main Content ────────────────────────────── */
         .main-content {
@@ -155,7 +226,10 @@
             min-height: 100vh;
             transition: margin-left 0.25s ease;
         }
-        .sidebar.collapsed ~ .main-content { margin-left: 56px; }
+
+        .sidebar.collapsed~.main-content {
+            margin-left: 56px;
+        }
 
         /* ── Header Bar ──────────────────────────────── */
         .header {
@@ -166,18 +240,31 @@
             background: var(--bg);
             border-bottom: 1px solid var(--card-border);
             gap: 16px;
-            position: sticky; top: 0; z-index: 50;
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
+
         .header-hamburger {
-            background: none; border: none; cursor: pointer;
-            color: var(--text-primary); display: flex; align-items: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
         }
-        .header-hamburger svg { width: 20px; height: 20px; }
+
+        .header-hamburger svg {
+            width: 20px;
+            height: 20px;
+        }
+
         .header-search {
             flex: 1;
             max-width: 460px;
             position: relative;
         }
+
         .header-search input {
             width: 100%;
             padding: 8px 12px 8px 36px;
@@ -190,22 +277,48 @@
             outline: none;
             transition: border-color 0.15s;
         }
-        .header-search input:focus { border-color: var(--accent); }
-        .header-search input::placeholder { color: var(--text-muted); }
-        .header-search .search-icon {
-            position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+
+        .header-search input:focus {
+            border-color: var(--accent);
+        }
+
+        .header-search input::placeholder {
             color: var(--text-muted);
         }
-        .header-search .search-icon svg { width: 16px; height: 16px; }
+
+        .header-search .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .header-search .search-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+
         .header-search .search-shortcut {
-            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-            font-size: 11px; color: var(--text-muted);
-            background: var(--bg); padding: 2px 6px; border-radius: 3px;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg);
+            padding: 2px 6px;
+            border-radius: 3px;
             border: 1px solid var(--card-border);
         }
+
         .header-right {
-            display: flex; align-items: center; gap: 16px; margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-left: auto;
         }
+
         .sandbox-badge {
             background: #E5E2D9;
             color: #6B6860;
@@ -216,30 +329,82 @@
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
+
         .header-icon-btn {
-            background: none; border: none; cursor: pointer;
-            color: var(--text-secondary); display: flex; align-items: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
             position: relative;
         }
-        .header-icon-btn svg { width: 20px; height: 20px; }
+
+        .header-icon-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
         .header-user {
-            display: flex; align-items: center; gap: 10px; cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
         }
+
         .header-user-avatar {
-            width: 32px; height: 32px; border-radius: 50%;
-            background: var(--accent); display: flex; align-items: center; justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .header-user-avatar svg { width: 18px; height: 18px; color: #F4F1EA; }
-        .header-user-info { line-height: 1.3; }
-        .header-user-name { font-weight: 600; font-size: 13px; }
-        .header-user-role { font-size: 11px; color: var(--text-muted); }
+
+        .header-user-avatar svg {
+            width: 18px;
+            height: 18px;
+            color: #F4F1EA;
+        }
+
+        .header-user-info {
+            line-height: 1.3;
+        }
+
+        .header-user-name {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .header-user-role {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
 
         /* ── Page Body ───────────────────────────────── */
-        .page-body { padding: 32px 40px; flex: 1; }
-        
-        .page-header { margin-bottom: 32px; }
-        .page-header h2 { font-family: var(--serif); font-size: 28px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
-        .page-header p { font-size: 14px; color: var(--text-secondary); max-width: 800px; }
+        .page-body {
+            padding: 32px 40px;
+            flex: 1;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h2 {
+            font-family: var(--serif);
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            max-width: 800px;
+        }
 
         /* ── Playground Layout ───────────────────────── */
         .playground-container {
@@ -255,12 +420,13 @@
             flex-direction: column;
             gap: 16px;
         }
-        
+
         .preset-bar {
             display: flex;
             align-items: center;
             gap: 12px;
         }
+
         .preset-label {
             font-size: 12px;
             font-weight: 600;
@@ -268,6 +434,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
         .preset-btn {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -279,7 +446,11 @@
             cursor: pointer;
             transition: all 0.15s;
         }
-        .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        .preset-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
 
         .textarea-header {
             display: flex;
@@ -289,12 +460,19 @@
             position: relative;
             padding-right: 12px;
         }
+
         .clear-btn {
-            background: none; border: none; cursor: pointer;
-            font-size: 12px; color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-muted);
             transition: color 0.15s;
         }
-        .clear-btn:hover { color: var(--sev-high); }
+
+        .clear-btn:hover {
+            color: var(--sev-high);
+        }
 
         .log-input {
             width: 100%;
@@ -308,11 +486,14 @@
             color: var(--text-primary);
             resize: vertical;
             outline: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
             transition: border-color 0.15s;
         }
-        .log-input:focus { border-color: var(--accent); }
-        
+
+        .log-input:focus {
+            border-color: var(--accent);
+        }
+
         .process-btn {
             width: 100%;
             padding: 14px;
@@ -325,26 +506,37 @@
             font-weight: 500;
             cursor: pointer;
             transition: background 0.15s;
-            display: flex; align-items: center; justify-content: center; gap: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .process-btn:hover { background: var(--accent-light); }
-        .process-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .process-btn:hover {
+            background: var(--accent-light);
+        }
+
+        .process-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
         /* ── Right Column ────────────────────────────── */
         .right-col {
             position: relative;
             min-height: 400px;
         }
-        
+
         .empty-state {
             position: absolute;
-            top: 50%; left: 50%;
+            top: 50%;
+            left: 50%;
             transform: translate(-50%, -50%);
             color: var(--text-muted);
             font-size: 14px;
             transition: opacity 0.3s;
         }
-        
+
         .stages-container {
             display: flex;
             flex-direction: column;
@@ -353,8 +545,10 @@
             visibility: hidden;
             transition: opacity 0.3s;
         }
+
         .stages-container.visible {
-            opacity: 1; visibility: visible;
+            opacity: 1;
+            visibility: visible;
         }
 
         .stage-panel {
@@ -362,51 +556,80 @@
             border: 1px solid var(--card-border);
             border-radius: var(--radius);
             padding: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
             opacity: 0;
             transform: translateY(10px);
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }
+
         .stage-panel.show {
             opacity: 1;
             transform: translateY(0);
         }
+
         .stage-panel.shimmering::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: linear-gradient(90deg, transparent, rgba(74, 93, 35, 0.05), transparent);
             background-size: 200% 100%;
             animation: shimmer 0.4s ease-in-out forwards;
             pointer-events: none;
         }
-        
+
         @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
         }
-        
+
         .stage-header {
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin-bottom: 12px;
             border-bottom: 1px solid var(--card-border);
             padding-bottom: 8px;
         }
+
         .stage-title {
-            font-size: 13px; font-weight: 600; color: var(--text-primary);
-            text-transform: uppercase; letter-spacing: 0.5px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+
         .stage-status {
             font-size: 11px;
             font-weight: 500;
             padding: 2px 8px;
             border-radius: 12px;
         }
-        .stage-status.ok { background: rgba(74,124,63,0.12); color: var(--sev-low); }
-        .stage-status.err { background: rgba(184,59,59,0.10); color: var(--sev-high); }
-        .stage-status.warn { background: rgba(200,146,42,0.12); color: var(--sev-medium); }
+
+        .stage-status.ok {
+            background: rgba(74, 124, 63, 0.12);
+            color: var(--sev-low);
+        }
+
+        .stage-status.err {
+            background: rgba(184, 59, 59, 0.10);
+            color: var(--sev-high);
+        }
+
+        .stage-status.warn {
+            background: rgba(200, 146, 42, 0.12);
+            color: var(--sev-medium);
+        }
 
         .stage-content {
             font-family: var(--mono);
@@ -433,370 +656,463 @@
             background: var(--bg);
             margin-top: auto;
         }
-        .footer-left { flex: 1; }
+
+        .footer-left {
+            flex: 1;
+        }
+
         .footer-center {
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .footer-center svg { width: 20px; height: 20px; opacity: 0.3; }
+
+        .footer-center svg {
+            width: 20px;
+            height: 20px;
+            opacity: 0.3;
+        }
+
         .footer-right {
-            flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 16px;
+            flex: 1;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 16px;
         }
+
         .footer-dot {
-            display: inline-block; width: 6px; height: 6px;
-            background: var(--sev-low); border-radius: 50%; margin-right: 6px;
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--sev-low);
+            border-radius: 50%;
+            margin-right: 6px;
         }
 
         @media (max-width: 1024px) {
-            .playground-container { grid-template-columns: 1fr; }
+            .playground-container {
+                grid-template-columns: 1fr;
+            }
         }
+
         @media (max-width: 900px) {
-            .sidebar { width: 56px; }
+            .sidebar {
+                width: 56px;
+            }
+
             .sidebar .sidebar-brand-text,
-            .sidebar .nav-label, .sidebar .nav-text, .sidebar .collapse-text { display: none; }
-            .main-content { margin-left: 56px; }
+            .sidebar .nav-label,
+            .sidebar .nav-text,
+            .sidebar .collapse-text {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 56px;
+            }
         }
     </style>
 </head>
+
 <body>
 
-<!-- ══════════════════════════════════════════════════ SIDEBAR ══ -->
-<aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-        <div class="sidebar-brand-icon">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 4C14 4 10 8 10 14C10 20 14 28 20 36C26 28 30 20 30 14C30 8 26 4 20 4Z" stroke="#8B9D6A" stroke-width="1.5" fill="none"/>
-                <circle cx="20" cy="14" r="4" stroke="#8B9D6A" stroke-width="1.5" fill="none"/>
-                <path d="M6 20Q20 26 34 20" stroke="#8B9D6A" stroke-width="1" fill="none" opacity="0.5"/>
-                <path d="M8 24Q20 30 32 24" stroke="#8B9D6A" stroke-width="1" fill="none" opacity="0.3"/>
-            </svg>
+    <!-- ══════════════════════════════════════════════════ SIDEBAR ══ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-icon">
+                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 4C14 4 10 8 10 14C10 20 14 28 20 36C26 28 30 20 30 14C30 8 26 4 20 4Z" stroke="#8B9D6A"
+                        stroke-width="1.5" fill="none" />
+                    <circle cx="20" cy="14" r="4" stroke="#8B9D6A" stroke-width="1.5" fill="none" />
+                    <path d="M6 20Q20 26 34 20" stroke="#8B9D6A" stroke-width="1" fill="none" opacity="0.5" />
+                    <path d="M8 24Q20 30 32 24" stroke="#8B9D6A" stroke-width="1" fill="none" opacity="0.3" />
+                </svg>
+            </div>
+            <div class="sidebar-brand-text">
+                <h1>PULSE</h1>
+                <p>Universal Log Processing &<br>Security Environment</p>
+            </div>
         </div>
-        <div class="sidebar-brand-text">
-            <h1>PULSE</h1>
-            <p>Universal Log Processing &<br>Security Environment</p>
-        </div>
-    </div>
 
-    <nav class="nav-section">
-        <div class="nav-section-label nav-label">OVERVIEW</div>
-        <a class="nav-item" href="/dashboard">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-            <span class="nav-text">Dashboard</span>
-        </a>
-        <a class="nav-item" href="#">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            <span class="nav-text">Events</span>
-        </a>
-        <a class="nav-item active" href="/playground">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            <span class="nav-text">Playground</span>
-        </a>
-    </nav>
-    <nav class="nav-section">
-        <div class="nav-section-label nav-label">PROCESSING</div>
-        <a class="nav-item" href="#">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-            <span class="nav-text">Normalization</span>
-        </a>
-        <a class="nav-item" href="#">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span class="nav-text">Quarantine</span>
-        </a>
-        <a class="nav-item" href="#">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-            <span class="nav-text">Merkle Batches</span>
-        </a>
-    </nav>
-    <nav class="nav-section">
-        <div class="nav-section-label nav-label">SECURITY</div>
-        <a class="nav-item" href="#">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span class="nav-text">Alerts</span>
-        </a>
-        <a class="nav-item" href="#">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            <span class="nav-text">Audit Trail</span>
-        </a>
-        <a class="nav-item" href="#">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span class="nav-text">Reports</span>
-        </a>
-    </nav>
-    <nav class="nav-section">
-        <div class="nav-section-label nav-label">SYSTEM</div>
-        <a class="nav-item" href="#">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            <span class="nav-text">Sources</span>
-        </a>
-        <a class="nav-item" href="#">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            <span class="nav-text">Settings</span>
-        </a>
-    </nav>
+        <nav class="nav-section">
+            <div class="nav-section-label nav-label">OVERVIEW</div>
+            <a class="nav-item" href="/dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+                <span class="nav-text">Events</span>
+            </a>
+            <a class="nav-item active" href="/playground">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span class="nav-text">Playground</span>
+            </a>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-section-label nav-label">PROCESSING</div>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6" />
+                    <polyline points="8 6 2 12 8 18" />
+                </svg>
+                <span class="nav-text">Normalization</span>
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <span class="nav-text">Quarantine</span>
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+                <span class="nav-text">Merkle Batches</span>
+            </a>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-section-label nav-label">SECURITY</div>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                <span class="nav-text">Alerts</span>
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+                <span class="nav-text">Audit Trail</span>
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span class="nav-text">Reports</span>
+            </a>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-section-label nav-label">SYSTEM</div>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+                <span class="nav-text">Sources</span>
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span class="nav-text">Settings</span>
+            </a>
+        </nav>
 
-    <div class="sidebar-footer">
-        <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
-            <span class="collapse-text">Collapse</span>
-        </button>
-    </div>
-</aside>
-
-<!-- ══════════════════════════════════════════════════ MAIN ══ -->
-<div class="main-content">
-
-    <!-- Header -->
-    <header class="header">
-        <button class="header-hamburger" onclick="toggleSidebar()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-        <div class="header-search">
-            <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            <input type="text" id="globalSearch" placeholder="Search events, IDs, sources...">
-            <span class="search-shortcut">Ctrl+/</span>
-        </div>
-        <div class="header-right">
-            <div class="sandbox-badge">Sandbox</div>
-            <button class="header-icon-btn" title="Notifications">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="sidebar-footer">
+            <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="11 17 6 12 11 7" />
+                    <polyline points="18 17 13 12 18 7" />
+                </svg>
+                <span class="collapse-text">Collapse</span>
             </button>
-            <div class="header-user">
-                <div class="header-user-avatar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                </div>
-                <div class="header-user-info">
-                    <div class="header-user-name">Admin User</div>
-                    <div class="header-user-role">System Administrator</div>
-                </div>
+        </div>
+    </aside>
+
+    <!-- ══════════════════════════════════════════════════ MAIN ══ -->
+    <div class="main-content">
+
+        <!-- Header -->
+        <header class="header">
+            <button class="header-hamburger" onclick="toggleSidebar()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+            </button>
+            <div class="header-search">
+                <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg></span>
+                <input type="text" id="globalSearch" placeholder="Search events, IDs, sources...">
+                <span class="search-shortcut">Ctrl+/</span>
             </div>
-        </div>
-    </header>
-
-    <!-- Page Body -->
-    <div class="page-body">
-        <div class="page-header">
-            <h2>Playground</h2>
-            <p>Test any log format and see the full processing pipeline in real time — no data is stored.</p>
-        </div>
-
-        <div class="playground-container">
-            <!-- Left Column -->
-            <div class="left-col">
-                <div class="preset-bar">
-                    <span class="preset-label">Preset</span>
-                    <button class="preset-btn" onclick="setPreset('json')">Try JSON</button>
-                    <button class="preset-btn" onclick="setPreset('syslog')">Try Syslog</button>
-                    <button class="preset-btn" onclick="setPreset('cef')">Try CEF</button>
-                </div>
-                
-                <div>
-                    <div class="textarea-header">
-                        <button class="clear-btn" onclick="clearInput()">Clear</button>
-                    </div>
-                    <textarea id="logInput" class="log-input" placeholder="Paste any raw log here..."></textarea>
-                </div>
-                
-                <button class="process-btn" id="processBtn" onclick="processEvent()">
-                    <span>→ Process Event</span>
+            <div class="header-right">
+                <div class="sandbox-badge">Sandbox</div>
+                <button class="header-icon-btn" title="Notifications">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
                 </button>
+                <div class="header-user">
+                    <div class="header-user-avatar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                    </div>
+                    <div class="header-user-info">
+                        <div class="header-user-name">Admin User</div>
+                        <div class="header-user-role">System Administrator</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Body -->
+        <div class="page-body">
+            <div class="page-header">
+                <h2>Playground</h2>
+                <p>Test any log format and see the full processing pipeline in real time — no data is stored.</p>
             </div>
 
-            <!-- Right Column -->
-            <div class="right-col">
-                <div class="empty-state" id="emptyState">Results will appear here</div>
-                
-                <div class="stages-container" id="stagesContainer">
-                    <!-- Template for stages, will be populated by JS -->
-                    <div class="stage-panel" id="stage-Detection">
-                        <div class="stage-header">
-                            <div class="stage-title">Detection</div>
-                            <div class="stage-status" id="status-Detection"></div>
-                        </div>
-                        <div class="stage-content" id="content-Detection"></div>
+            <div class="playground-container">
+                <!-- Left Column -->
+                <div class="left-col">
+                    <div class="preset-bar">
+                        <span class="preset-label">Preset</span>
+                        <button class="preset-btn" onclick="setPreset('json')">Try JSON</button>
+                        <button class="preset-btn" onclick="setPreset('syslog')">Try Syslog</button>
+                        <button class="preset-btn" onclick="setPreset('cef')">Try CEF</button>
                     </div>
-                    <div class="stage-panel" id="stage-Parsing">
-                        <div class="stage-header">
-                            <div class="stage-title">Parsing</div>
-                            <div class="stage-status" id="status-Parsing"></div>
+
+                    <div>
+                        <div class="textarea-header">
+                            <button class="clear-btn" onclick="clearInput()">Clear</button>
                         </div>
-                        <div class="stage-content" id="content-Parsing"></div>
+                        <textarea id="logInput" class="log-input" placeholder="Paste any raw log here..."></textarea>
                     </div>
-                    <div class="stage-panel" id="stage-Normalization">
-                        <div class="stage-header">
-                            <div class="stage-title">Normalization</div>
-                            <div class="stage-status" id="status-Normalization"></div>
+
+                    <button class="process-btn" id="processBtn" onclick="processEvent()">
+                        <span>→ Process Event</span>
+                    </button>
+                </div>
+
+                <!-- Right Column -->
+                <div class="right-col">
+                    <div class="empty-state" id="emptyState">Results will appear here</div>
+
+                    <div class="stages-container" id="stagesContainer">
+                        <!-- Template for stages, will be populated by JS -->
+                        <div class="stage-panel" id="stage-Detection">
+                            <div class="stage-header">
+                                <div class="stage-title">Detection</div>
+                                <div class="stage-status" id="status-Detection"></div>
+                            </div>
+                            <div class="stage-content" id="content-Detection"></div>
                         </div>
-                        <div class="stage-content" id="content-Normalization"></div>
-                    </div>
-                    <div class="stage-panel" id="stage-Enrichment">
-                        <div class="stage-header">
-                            <div class="stage-title">Enrichment</div>
-                            <div class="stage-status" id="status-Enrichment"></div>
+                        <div class="stage-panel" id="stage-Parsing">
+                            <div class="stage-header">
+                                <div class="stage-title">Parsing</div>
+                                <div class="stage-status" id="status-Parsing"></div>
+                            </div>
+                            <div class="stage-content" id="content-Parsing"></div>
                         </div>
-                        <div class="stage-content" id="content-Enrichment"></div>
-                    </div>
-                    <div class="stage-panel" id="stage-Validation">
-                        <div class="stage-header">
-                            <div class="stage-title">Validation</div>
-                            <div class="stage-status" id="status-Validation"></div>
+                        <div class="stage-panel" id="stage-Normalization">
+                            <div class="stage-header">
+                                <div class="stage-title">Normalization</div>
+                                <div class="stage-status" id="status-Normalization"></div>
+                            </div>
+                            <div class="stage-content" id="content-Normalization"></div>
                         </div>
-                        <div class="stage-content" id="content-Validation"></div>
-                    </div>
-                    <div class="stage-panel" id="stage-Integrity">
-                        <div class="stage-header">
-                            <div class="stage-title">Integrity</div>
-                            <div class="stage-status" id="status-Integrity"></div>
+                        <div class="stage-panel" id="stage-Enrichment">
+                            <div class="stage-header">
+                                <div class="stage-title">Enrichment</div>
+                                <div class="stage-status" id="status-Enrichment"></div>
+                            </div>
+                            <div class="stage-content" id="content-Enrichment"></div>
                         </div>
-                        <div class="stage-content" id="content-Integrity"></div>
+                        <div class="stage-panel" id="stage-Validation">
+                            <div class="stage-header">
+                                <div class="stage-title">Validation</div>
+                                <div class="stage-status" id="status-Validation"></div>
+                            </div>
+                            <div class="stage-content" id="content-Validation"></div>
+                        </div>
+                        <div class="stage-panel" id="stage-Integrity">
+                            <div class="stage-header">
+                                <div class="stage-title">Integrity</div>
+                                <div class="stage-status" id="status-Integrity"></div>
+                            </div>
+                            <div class="stage-content" id="content-Integrity"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-left">© 2025 PULSE – ULPF. All rights reserved.</div>
+            <div class="footer-center">
+                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 4C14 4 10 8 10 14C10 20 14 28 20 36C26 28 30 20 30 14C30 8 26 4 20 4Z" stroke="#8B9D6A"
+                        stroke-width="1.5" fill="none" />
+                    <circle cx="20" cy="14" r="4" stroke="#8B9D6A" stroke-width="1.5" fill="none" />
+                </svg>
+            </div>
+            <div class="footer-right">
+                <span><span class="footer-dot"></span>System Time: <span id="footerClock"></span> IST</span>
+            </div>
+        </footer>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-left">© 2025 PULSE – ULPF. All rights reserved.</div>
-        <div class="footer-center">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 4C14 4 10 8 10 14C10 20 14 28 20 36C26 28 30 20 30 14C30 8 26 4 20 4Z" stroke="#8B9D6A" stroke-width="1.5" fill="none"/>
-                <circle cx="20" cy="14" r="4" stroke="#8B9D6A" stroke-width="1.5" fill="none"/>
-            </svg>
-        </div>
-        <div class="footer-right">
-            <span><span class="footer-dot"></span>System Time: <span id="footerClock"></span> IST</span>
-        </div>
-    </footer>
-</div>
+    <script>
+        // ── Sidebar & Clock ─────────────────────────────────────
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
 
-<script>
-    // ── Sidebar & Clock ─────────────────────────────────────
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('collapsed');
-    }
+        function updateClock() {
+            const now = new Date();
+            const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+            const y = ist.getUTCFullYear();
+            const mo = String(ist.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(ist.getUTCDate()).padStart(2, '0');
+            const h = String(ist.getUTCHours()).padStart(2, '0');
+            const mi = String(ist.getUTCMinutes()).padStart(2, '0');
+            const s = String(ist.getUTCSeconds()).padStart(2, '0');
+            document.getElementById('footerClock').textContent = `${y}-${mo}-${d} ${h}:${mi}:${s}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-    function updateClock() {
-        const now = new Date();
-        const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
-        const y = ist.getUTCFullYear();
-        const mo = String(ist.getUTCMonth() + 1).padStart(2, '0');
-        const d = String(ist.getUTCDate()).padStart(2, '0');
-        const h = String(ist.getUTCHours()).padStart(2, '0');
-        const mi = String(ist.getUTCMinutes()).padStart(2, '0');
-        const s = String(ist.getUTCSeconds()).padStart(2, '0');
-        document.getElementById('footerClock').textContent = `${y}-${mo}-${d} ${h}:${mi}:${s}`;
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
+        // ── Playground Logic ────────────────────────────────────
+        const PRESETS = {
+            json: '{\n  "event_type": "firewall-deny",\n  "src": "192.168.1.100",\n  "dest": "10.0.0.1",\n  "action": "DROP"\n}',
+            syslog: '<34>Oct 11 22:14:15 myfirewall kernel: DROP TCP 192.168.1.100 -> 10.0.0.5:80',
+            cef: 'CEF:0|Fortinet|FortiGate|v7.0|1001|Deny Traffic|3|src=10.0.0.5 dst=8.8.8.8 spt=49122 dpt=443 act=deny'
+        };
 
-    // ── Playground Logic ────────────────────────────────────
-    const PRESETS = {
-        json: '{\n  "event_type": "firewall-deny",\n  "src": "192.168.1.100",\n  "dest": "10.0.0.1",\n  "action": "DROP"\n}',
-        syslog: '<34>Oct 11 22:14:15 myfirewall kernel: DROP TCP 192.168.1.100 -> 10.0.0.5:80',
-        cef: 'CEF:0|Fortinet|FortiGate|v7.0|1001|Deny Traffic|3|src=10.0.0.5 dst=8.8.8.8 spt=49122 dpt=443 act=deny'
-    };
-    
-    const STAGES = ['Detection', 'Parsing', 'Normalization', 'Enrichment', 'Validation', 'Integrity'];
+        const STAGES = ['Detection', 'Parsing', 'Normalization', 'Enrichment', 'Validation', 'Integrity'];
 
-    function setPreset(type) {
-        document.getElementById('logInput').value = PRESETS[type];
-    }
+        function setPreset(type) {
+            document.getElementById('logInput').value = PRESETS[type];
+        }
 
-    function clearInput() {
-        document.getElementById('logInput').value = '';
-    }
+        function clearInput() {
+            document.getElementById('logInput').value = '';
+        }
 
-    async function processEvent() {
-        const payload = document.getElementById('logInput').value.trim();
-        if (!payload) return;
+        async function processEvent() {
+            const payload = document.getElementById('logInput').value.trim();
+            if (!payload) return;
 
-        const btn = document.getElementById('processBtn');
-        btn.disabled = true;
-        btn.innerHTML = 'Processing...';
-        
-        // Reset stages
-        document.getElementById('emptyState').style.opacity = '0';
-        const container = document.getElementById('stagesContainer');
-        container.classList.remove('visible');
-        
-        STAGES.forEach(stage => {
-            const panel = document.getElementById(`stage-${stage}`);
-            panel.classList.remove('show', 'shimmering');
-            document.getElementById(`status-${stage}`).className = 'stage-status';
-            document.getElementById(`status-${stage}`).textContent = '';
-            document.getElementById(`content-${stage}`).textContent = '';
-        });
+            const btn = document.getElementById('processBtn');
+            btn.disabled = true;
+            btn.innerHTML = 'Processing...';
 
-        try {
-            // Support raw payload directly as per ingest spec
-            let reqBody;
-            try {
-                reqBody = JSON.parse(payload);
-            } catch (e) {
-                reqBody = payload;
-            }
+            // Reset stages
+            document.getElementById('emptyState').style.opacity = '0';
+            const container = document.getElementById('stagesContainer');
+            container.classList.remove('visible');
 
-            const res = await fetch('/api/v1/playground/process', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ payload: reqBody })
+            STAGES.forEach(stage => {
+                const panel = document.getElementById(`stage-${stage}`);
+                panel.classList.remove('show', 'shimmering');
+                document.getElementById(`status-${stage}`).className = 'stage-status';
+                document.getElementById(`status-${stage}`).textContent = '';
+                document.getElementById(`content-${stage}`).textContent = '';
             });
-            
-            const data = await res.json();
-            
-            // Animate results
-            container.classList.add('visible');
-            await animateStages(data);
 
-        } catch (error) {
-            console.error("Processing failed", error);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<span>→ Process Event</span>';
-        }
-    }
+            try {
+                // Support raw payload directly as per ingest spec
+                let reqBody;
+                try {
+                    reqBody = JSON.parse(payload);
+                } catch (e) {
+                    reqBody = payload;
+                }
 
-    async function animateStages(data) {
-        for (let i = 0; i < STAGES.length; i++) {
-            const stage = STAGES[i];
-            const stageKey = stage.toLowerCase();
-            const panel = document.getElementById(`stage-${stage}`);
-            const statusEl = document.getElementById(`status-${stage}`);
-            const contentEl = document.getElementById(`content-${stage}`);
-            
-            panel.classList.add('show', 'shimmering');
-            
-            // Wait for shimmer effect duration
-            await new Promise(r => setTimeout(r, 300));
-            
-            panel.classList.remove('shimmering');
-            
-            const stageData = data[stageKey];
-            
-            if (!stageData) {
-                statusEl.textContent = 'Not Reached';
-                statusEl.classList.add('warn');
-                contentEl.textContent = 'No data available for this stage.';
-            } else if (stageData.error) {
-                statusEl.textContent = 'Error';
-                statusEl.classList.add('err');
-                contentEl.textContent = stageData.error;
-            } else if (stageData.note && Object.keys(stageData).length === 1) {
-                statusEl.textContent = 'Failed';
-                statusEl.classList.add('err');
-                contentEl.textContent = stageData.note;
-            } else {
-                statusEl.textContent = 'Success';
-                statusEl.classList.add('ok');
-                contentEl.textContent = JSON.stringify(stageData, null, 2);
-            }
-            
-            // Stagger next panel
-            if (i < STAGES.length - 1) {
-                await new Promise(r => setTimeout(r, 200));
+                const res = await fetch('/api/v1/playground/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payload: reqBody })
+                });
+
+                const data = await res.json();
+
+                // Animate results
+                container.classList.add('visible');
+                await animateStages(data);
+
+            } catch (error) {
+                console.error("Processing failed", error);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>→ Process Event</span>';
             }
         }
-    }
-</script>
 
+        async function animateStages(data) {
+            for (let i = 0; i < STAGES.length; i++) {
+                const stage = STAGES[i];
+                const stageKey = stage.toLowerCase();
+                const panel = document.getElementById(`stage-${stage}`);
+                const statusEl = document.getElementById(`status-${stage}`);
+                const contentEl = document.getElementById(`content-${stage}`);
+
+                panel.classList.add('show', 'shimmering');
+
+                // Wait for shimmer effect duration
+                await new Promise(r => setTimeout(r, 300));
+
+                panel.classList.remove('shimmering');
+
+                const stageData = data[stageKey];
+
+                if (!stageData) {
+                    statusEl.textContent = 'Not Reached';
+                    statusEl.classList.add('warn');
+                    contentEl.textContent = 'No data available for this stage.';
+                } else if (stageData.error) {
+                    statusEl.textContent = 'Error';
+                    statusEl.classList.add('err');
+                    contentEl.textContent = stageData.error;
+                } else if (stageData.note && Object.keys(stageData).length === 1) {
+                    statusEl.textContent = 'Failed';
+                    statusEl.classList.add('err');
+                    contentEl.textContent = stageData.note;
+                } else {
+                    statusEl.textContent = 'Success';
+                    statusEl.classList.add('ok');
+                    contentEl.textContent = JSON.stringify(stageData, null, 2);
+                }
+
+                // Stagger next panel
+                if (i < STAGES.length - 1) {
+                    await new Promise(r => setTimeout(r, 200));
+                }
+            }
+        }
+    </script>
+
+    <script src="/static/smooth-cursor.js"></script>
+    <script src="/static/theme-toggler.js"></script>
 </body>
+
 </html>

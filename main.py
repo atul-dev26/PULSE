@@ -39,6 +39,9 @@ app.add_middleware(
 
 app.include_router(router)
 
+# Serve dynamic assets from static folder
+app.mount("/assets", StaticFiles(directory="static"), name="assets")
+
 # Serve dashboard static files
 app.mount("/static", StaticFiles(directory="dashboard"), name="static")
 

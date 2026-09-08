@@ -14,6 +14,7 @@ from normalization.json_mapper import map_to_canonical
 from detection.detector import detect
 from integrity.chain import append_to_chain
 from integrity.merkle import check_and_create_batch
+from correlation.engine import run_correlation
 from enrichment import ENRICHMENT_CONFIG
 from enrichment.ip_classifier import classify_ip
 from enrichment.geoip import get_country_code
@@ -208,4 +209,28 @@ def process_ingestion(db: Session, source_id: str, transport: str, payload_str: 
         res["note"] = f"sent to DLQ, see /api/v1/dlq/{event_id}"
         
     db.commit()
+
+    # ── Correlation Engine Hook ──────────────────────────────────────
+    # Run lightweight rule-based correlation for the source_ip of the
+    # just-ingested event.  Wrapped in try/except so correlation issues
+    # never break the ingestion pipeline.
+    try:
+        corr_ip = None
+        if 'canonical_model' in dir():
+            # canonical_model is only set when parsing succeeded
+            pass
+        # We need to extract source_ip; easiest to re-derive from the
+        # canonical row we just stored.
+        corr_row = db.query(CanonicalEventRow).filter(
+            CanonicalEventRow.event_id == event_id
+        ).first()
+        if corr_row and corr_row.network:
+            corr_ip = corr_row.network.get("source_ip")
+        if corr_ip:
+            run_correlation(db, corr_ip)
+    except Exception as e:
+        # Never let correlation break ingestion
+        print(f"[correlation] post-ingest error: {e}")
+
     return res
+

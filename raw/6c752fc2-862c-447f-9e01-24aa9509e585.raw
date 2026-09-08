@@ -1,0 +1,1 @@
+{"event_type": "privilege_escalation", "action": "privilege_escalation", "src_ip": "10.0.0.42", "dst_ip": "192.168.1.1", "severity": "high", "protocol": "ssh", "host": "auth-server-01", "product": "sshd", "vendor": "OpenSSH", "user": "root", "message": "Accepted publickey for root from 10.0.0.42 port 22 ssh2 - escalated to root"}

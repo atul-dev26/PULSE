@@ -1,0 +1,1 @@
+{"event_type": "failed_login", "action": "failed_login", "src_ip": "185.220.101.12", "dst_ip": "10.0.0.1", "severity": "medium", "protocol": "rdp", "host": "win-dc-01", "product": "Windows Security", "vendor": "Microsoft", "user": "administrator_3", "message": "Logon failure: Account Name: administrator_3 Source: 185.220.101.12"}

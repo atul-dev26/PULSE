@@ -47,7 +47,7 @@ def map_to_canonical(event_id: str, parsed_event: dict, parser_id: str = "json_p
     destination_ip = resolve_field(parsed_event, ["dst", "dest", "dst_ip", "destination_ip", "destinationAddress"])
     destination_port = resolve_field(parsed_event, ["dest_port", "destination_port", "destinationPort", "dport", "dpt"])
     
-    action = resolve_field(parsed_event, ["action", "act"])
+    action = resolve_field(parsed_event, ["action", "act", "event_type"])
     severity = resolve_field(parsed_event, ["severity", "level", "sev"])
     
     timestamp = resolve_field(parsed_event, ["timestamp", "time", "date"])

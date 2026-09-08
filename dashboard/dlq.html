@@ -994,7 +994,7 @@
                 </svg>
                 <span class="nav-text">Dashboard</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" id="nav-events" href="/events">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
@@ -1019,7 +1019,7 @@
                 </svg>
                 <span class="nav-text">Quarantine</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/merkle-batches">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                     <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
@@ -1054,11 +1054,21 @@
                 </svg>
                 <span class="nav-text">Sources</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/reports">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <line x1="10" y1="9" x2="8" y2="9"/>
+                </svg>
+                <span class="nav-text">Reports</span>
+            </a>
+            <a class="nav-item" href="/observability">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                 </svg>
-                <span class="nav-text">Integrations</span>
+                <span class="nav-text">Observability</span>
             </a>
             <a class="nav-item" href="#">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1215,22 +1225,12 @@
 
     <script src="/assets/js/auth.js"></script>
     <script>
-        // ═══════════════════════════════════════════════════════════════
-        // PULSE Audit Trail — JavaScript
-        // ═══════════════════════════════════════════════════════════════
-
         const API_BASE = '';
-        let currentPage = 1;
-        let currentPageSize = 50;
-        let sortDirection = 'desc'; // 'desc' = newest first (default), 'asc' = oldest first
-        let currentFilters = { username: '', action: '', start_date: '', end_date: '' };
-
-        // ── Sidebar Toggle ──────────────────────────────────────
+        
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('collapsed');
         }
 
-        // ── Clock ───────────────────────────────────────────────
         function updateClock() {
             const now = new Date();
             const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
@@ -1245,282 +1245,62 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // ── Toast ───────────────────────────────────────────────
         function showToast(msg, type = 'info') {
             const t = document.getElementById('toast');
             t.textContent = msg;
-            t.className = 'toast ' + type + ' show';
-            setTimeout(() => { t.classList.remove('show'); }, 3000);
+            t.className = 'toast show ' + type;
+            setTimeout(() => { t.className = 'toast'; }, 3000);
         }
 
-        // ── Number Formatting ───────────────────────────────────
-        function fmtNum(n) {
-            if (n == null) return '—';
-            return Number(n).toLocaleString('en-US');
-        }
-
-        // ── Action Display Labels ───────────────────────────────
-        function actionLabel(action) {
-            const labels = {
-                'verified_event': 'Verified Event',
-                'viewed_raw_evidence': 'Viewed Raw Evidence',
-                'generated_certificate': 'Generated Certificate',
-                'approved_mapping': 'Approved Mapping',
-                'rejected_mapping': 'Rejected Mapping'
-            };
-            return labels[action] || action;
-        }
-
-        // ── Copy to Clipboard ───────────────────────────────────
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Copied to clipboard', 'success');
-            }).catch(() => {
-                // Fallback
-                const ta = document.createElement('textarea');
-                ta.value = text;
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-                showToast('Copied to clipboard', 'success');
-            });
-        }
-
-        // ── Sort Toggle ─────────────────────────────────────────
-        function toggleSort() {
-            sortDirection = sortDirection === 'desc' ? 'asc' : 'desc';
-            document.getElementById('sortArrow').textContent = sortDirection === 'desc' ? '↓' : '↑';
-            currentPage = 1;
-            fetchAuditLogs();
-        }
-
-        // ── Populate User Dropdown ──────────────────────────────
-        async function populateUsers() {
+        async function fetchDlqRecords() {
             try {
-                // Fetch first page with large page_size to extract distinct usernames
-                const res = await PulseAuth.fetch(API_BASE + '/api/v1/audit?page=1&page_size=100');
-                if (!res.ok) return;
+                const res = await PulseAuth.fetch('/api/v1/dlq');
+                if (!res.ok) throw new Error('Fetch failed');
                 const data = await res.json();
-                const entries = data.entries || [];
-                const userSet = new Set();
-                entries.forEach(e => { if (e.username) userSet.add(e.username); });
-
-                // If there are more pages, fetch additional to find all distinct users
-                const totalPages = (data.pagination && data.pagination.total_pages) || 1;
-                if (totalPages > 1) {
-                    // Fetch a sample from later pages to catch more usernames
-                    const pagesToFetch = Math.min(totalPages, 5);
-                    for (let p = 2; p <= pagesToFetch; p++) {
-                        try {
-                            const r = await PulseAuth.fetch(API_BASE + '/api/v1/audit?page=' + p + '&page_size=100');
-                            if (r.ok) {
-                                const d = await r.json();
-                                (d.entries || []).forEach(e => { if (e.username) userSet.add(e.username); });
-                            }
-                        } catch (e) { /* ignore */ }
-                    }
+                
+                const tbody = document.getElementById('dlqTableBody');
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">No DLQ records found</td></tr>';
+                    document.getElementById('dlqCountBadge').textContent = '0 records';
+                    document.getElementById('tableInfo').textContent = 'Showing 0 results';
+                    return;
                 }
-
-                const sel = document.getElementById('filterUser');
-                sel.innerHTML = '<option value="">All Users</option>';
-                Array.from(userSet).sort().forEach(u => {
-                    const opt = document.createElement('option');
-                    opt.value = u;
-                    // Capitalize for display
-                    opt.textContent = u.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-                    sel.appendChild(opt);
-                });
+                
+                document.getElementById('dlqCountBadge').textContent = `${data.length} records`;
+                document.getElementById('tableInfo').textContent = `Showing ${data.length} results`;
+                
+                tbody.innerHTML = data.map(r => {
+                    const ts = r.timestamp ? r.timestamp.replace('T', ' ').replace(/\.\d+$/, '').substring(0, 19) : '—';
+                    const shortId = r.event_id ? r.event_id.substring(0,8) + '...' : '—';
+                    
+                    return `
+                        <tr>
+                            <td class="cell-timestamp">${ts}</td>
+                            <td style="font-family:var(--mono);font-size:11px;" title="${r.event_id}">${shortId}</td>
+                            <td>${r.failure_stage || 'Unknown'}</td>
+                            <td style="color:var(--sev-high);font-weight:600;">${r.error_code || 'ERROR'}</td>
+                            <td style="font-family:var(--mono);font-size:11px;">${r.error_message || '—'}</td>
+                            <td>${r.attempt || 1}</td>
+                            <td>
+                                <button class="action-btn" onclick="retryDlq('${r.event_id}')" style="padding:4px 8px;font-size:11px;">Retry</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
             } catch (e) {
-                console.error('Failed to populate users:', e);
+                console.error(e);
+                document.getElementById('dlqTableBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--sev-high)">Failed to load DLQ records</td></tr>';
             }
         }
-
-        // ── Fetch Audit Logs ────────────────────────────────────
-        async function fetchAuditLogs() {
-            try {
-                let url = API_BASE + '/api/v1/audit?page=' + currentPage + '&page_size=' + currentPageSize;
-                if (currentFilters.username) url += '&username=' + encodeURIComponent(currentFilters.username);
-                if (currentFilters.action) url += '&action=' + encodeURIComponent(currentFilters.action);
-                if (currentFilters.start_date) url += '&start_date=' + encodeURIComponent(currentFilters.start_date);
-                if (currentFilters.end_date) url += '&end_date=' + encodeURIComponent(currentFilters.end_date);
-
-                const res = await PulseAuth.fetch(url);
-                if (!res.ok) throw new Error('audit fetch failed');
-                const data = await res.json();
-
-                let entries = data.entries || [];
-
-                // Client-side sort by timestamp (the API always returns desc — we flip if needed)
-                if (sortDirection === 'asc') {
-                    entries = entries.slice().sort((a, b) => {
-                        const ta = a.timestamp || '';
-                        const tb = b.timestamp || '';
-                        return ta < tb ? -1 : ta > tb ? 1 : 0;
-                    });
-                }
-
-                renderAuditTable(entries);
-                renderPagination(data.pagination || {});
-            } catch (e) {
-                console.error('Audit fetch error:', e);
-                document.getElementById('auditTableBody').innerHTML =
-                    '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--sev-high)">Failed to load audit logs</td></tr>';
-            }
+        
+        async function retryDlq(eventId) {
+            showToast('Retry not fully implemented in API yet.', 'info');
         }
 
-        // ── Render Table ────────────────────────────────────────
-        function renderAuditTable(entries) {
-            const tbody = document.getElementById('auditTableBody');
-            if (!entries.length) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)">No audit logs found</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = entries.map(e => {
-                // Timestamp
-                const ts = e.timestamp || '';
-                const tsDisplay = ts ? ts.replace('T', ' ').replace(/\.\d+$/, '').substring(0, 23) : '—';
-
-                // User
-                const user = e.username
-                    ? e.username.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-                    : '—';
-
-                // Action badge
-                const actionClass = (e.action || '').replace(/ /g, '_').toLowerCase();
-                const actionText = actionLabel(e.action || '');
-
-                // Event ID (truncated with copy icon, only if present)
-                let eventIdCell = '<span style="color:var(--text-muted)">—</span>';
-                if (e.event_id) {
-                    const eidFull = e.event_id;
-                    const eidShort = eidFull.length > 32 ? eidFull.substring(0, 32) + '…' : eidFull;
-                    eventIdCell = `<span class="cell-event-id-wrapper">
-                <span title="${eidFull}">${eidShort}</span>
-                <button class="copy-btn" onclick="copyToClipboard('${eidFull}')" title="Copy full ID">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                </button>
-            </span>`;
-                }
-
-                // IP Address
-                const ip = e.ip_address || '—';
-
-                return `<tr>
-            <td class="cell-timestamp">${tsDisplay}</td>
-            <td class="cell-user">${user}</td>
-            <td><span class="action-badge ${actionClass}">${actionText}</span></td>
-            <td class="cell-event-id">${eventIdCell}</td>
-            <td class="cell-ip">${ip}</td>
-        </tr>`;
-            }).join('');
-        }
-
-        // ── Render Pagination ───────────────────────────────────
-        function renderPagination(pag) {
-            const { page = 1, page_size = 50, total_events = 0, total_pages = 1 } = pag;
-            const start = total_events === 0 ? 0 : Math.min((page - 1) * page_size + 1, total_events);
-            const end = Math.min(page * page_size, total_events);
-
-            document.getElementById('tableInfo').textContent =
-                `Audit Log Results · Showing ${start} to ${end} of ${fmtNum(total_events)} Logs`;
-
-            const container = document.getElementById('pagination');
-            container.innerHTML = '';
-
-            // Prev button
-            const prev = document.createElement('button');
-            prev.className = 'page-btn nav-btn';
-            prev.innerHTML = '‹';
-            prev.disabled = page <= 1;
-            prev.onclick = () => { currentPage = page - 1; fetchAuditLogs(); };
-            container.appendChild(prev);
-
-            // Page numbers
-            const pages = getPageNumbers(page, total_pages);
-            pages.forEach(p => {
-                if (p === '...') {
-                    const el = document.createElement('span');
-                    el.className = 'page-ellipsis';
-                    el.textContent = '…';
-                    container.appendChild(el);
-                } else {
-                    const btn = document.createElement('button');
-                    btn.className = 'page-btn' + (p === page ? ' active' : '');
-                    btn.textContent = p;
-                    btn.onclick = () => { currentPage = p; fetchAuditLogs(); };
-                    container.appendChild(btn);
-                }
-            });
-
-            // Next button
-            const next = document.createElement('button');
-            next.className = 'page-btn nav-btn';
-            next.innerHTML = '›';
-            next.disabled = page >= total_pages;
-            next.onclick = () => { currentPage = page + 1; fetchAuditLogs(); };
-            container.appendChild(next);
-        }
-
-        function getPageNumbers(current, total) {
-            if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-            const pages = [];
-            if (current <= 4) {
-                for (let i = 1; i <= 5; i++) pages.push(i);
-                pages.push('...', total);
-            } else if (current >= total - 3) {
-                pages.push(1, '...');
-                for (let i = total - 4; i <= total; i++) pages.push(i);
-            } else {
-                pages.push(1, '...', current - 1, current, current + 1, '...', total);
-            }
-            return pages;
-        }
-
-        // ── Filter Event Handlers ───────────────────────────────
-        document.getElementById('filterUser').addEventListener('change', function () {
-            currentFilters.username = this.value;
-            currentPage = 1;
-            fetchAuditLogs();
-        });
-        document.getElementById('filterAction').addEventListener('change', function () {
-            currentFilters.action = this.value;
-            currentPage = 1;
-            fetchAuditLogs();
-        });
-        document.getElementById('filterStartDate').addEventListener('change', function () {
-            currentFilters.start_date = this.value;
-            currentPage = 1;
-            fetchAuditLogs();
-        });
-        document.getElementById('filterEndDate').addEventListener('change', function () {
-            currentFilters.end_date = this.value;
-            currentPage = 1;
-            fetchAuditLogs();
-        });
-        document.getElementById('pageSizeSelect').addEventListener('change', function () {
-            currentPageSize = parseInt(this.value);
-            currentPage = 1;
-            fetchAuditLogs();
-        });
-
-        // Keyboard shortcut Ctrl+/
-        document.addEventListener('keydown', function (e) {
-            if (e.ctrlKey && e.key === '/') {
-                e.preventDefault();
-                document.getElementById('globalSearch').focus();
-            }
-        });
-
-        // ── Initialize ──────────────────────────────────────────
-        async function init() {
+        document.addEventListener('DOMContentLoaded', async () => {
             await PulseAuth.requireAuth();
-            await populateUsers();
-            await fetchAuditLogs();
-        }
-
-        init();
+            fetchDlqRecords();
+        });
     </script>
     <script src="/static/smooth-cursor.js"></script>
     <script src="/static/theme-toggler.js"></script>

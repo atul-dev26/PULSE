@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE – Sign In</title>
+    <meta name="description" content="Sign in to PULSE — Universal Log Processing & Security Environment.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #F4F1EA;
+            --accent: #4A5D23;
+            --accent-light: #5C7330;
+            --card-bg: #FFFFFF;
+            --card-border: #D4D0C6;
+            --text-primary: #2B2E23;
+            --text-secondary: #6B6860;
+            --text-muted: #9B978E;
+            --sev-high: #B83B3B;
+            --sans: 'Inter', -apple-system, sans-serif;
+            --serif: 'IBM Plex Serif', Georgia, serif;
+            --radius: 5px;
+        }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 40px 36px 32px;
+            box-shadow: 0 8px 32px rgba(43, 46, 35, 0.08);
+        }
+
+        .login-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-brand-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 14px;
+        }
+
+        .login-brand-icon svg {
+            width: 48px;
+            height: 48px;
+        }
+
+        .login-brand h1 {
+            font-family: var(--serif);
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 3px;
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+
+        .login-tagline {
+            font-size: 12px;
+            color: var(--text-secondary);
+            max-width: 280px;
+            line-height: 1.45;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            background: var(--bg);
+            font-family: var(--sans);
+            font-size: 14px;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent);
+            background: var(--card-bg);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .login-error {
+            display: none;
+            padding: 10px 12px;
+            border-radius: var(--radius);
+            background: rgba(184, 59, 59, 0.08);
+            border: 1px solid rgba(184, 59, 59, 0.2);
+            color: var(--sev-high);
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .login-error.visible {
+            display: block;
+        }
+
+        .sign-in-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 4px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            font-family: var(--sans);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .sign-in-btn:hover {
+            background: var(--accent-light);
+        }
+
+        .sign-in-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .login-footer {
+            margin-top: 28px;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <div class="login-brand">
+            <div class="login-brand-icon">
+                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 4C14 4 10 8 10 14C10 20 14 28 20 36C26 28 30 20 30 14C30 8 26 4 20 4Z" stroke="#4A5D23"
+                        stroke-width="1.5" fill="none" />
+                    <circle cx="20" cy="14" r="4" stroke="#4A5D23" stroke-width="1.5" fill="none" />
+                    <path d="M6 20Q20 26 34 20" stroke="#4A5D23" stroke-width="1" fill="none" opacity="0.5" />
+                    <path d="M8 24Q20 30 32 24" stroke="#4A5D23" stroke-width="1" fill="none" opacity="0.3" />
+                </svg>
+            </div>
+            <h1>PULSE</h1>
+            <p class="login-tagline">Universal Log Processing &amp; Security Environment</p>
+        </div>
+
+        <form class="login-form" id="loginForm" autocomplete="on">
+            <div class="login-error" id="loginError" role="alert">Invalid credentials</div>
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter username" required
+                    autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter password" required
+                    autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="sign-in-btn" id="signInBtn">Sign In</button>
+        </form>
+
+        <p class="login-footer">Authorized personnel only. All access is logged.</p>
+    </div>
+
+    <script src="/assets/js/auth.js"></script>
+    <script>
+        (function () {
+            const form = document.getElementById('loginForm');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const errorEl = document.getElementById('loginError');
+            const signInBtn = document.getElementById('signInBtn');
+
+            if (PulseAuth.getToken()) {
+                window.location.href = '/dashboard';
+                return;
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                errorEl.classList.remove('visible');
+                signInBtn.disabled = true;
+                signInBtn.textContent = 'Signing in…';
+
+                try {
+                    const response = await PulseAuth.login(
+                        usernameInput.value.trim(),
+                        passwordInput.value
+                    );
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        PulseAuth.setToken(data.access_token);
+                        window.location.href = '/dashboard';
+                        return;
+                    }
+
+                    if (response.status === 401) {
+                        errorEl.classList.add('visible');
+                        passwordInput.value = '';
+                        passwordInput.focus();
+                    } else {
+                        errorEl.textContent = 'Unable to sign in. Please try again.';
+                        errorEl.classList.add('visible');
+                    }
+                } catch (err) {
+                    errorEl.textContent = 'Network error. Please try again.';
+                    errorEl.classList.add('visible');
+                } finally {
+                    signInBtn.disabled = false;
+                    signInBtn.textContent = 'Sign In';
+                }
+            });
+        })();
+    </script>
+</body>
+
+</html>

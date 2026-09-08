@@ -4,8 +4,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from common.database import engine, Base
 from api.endpoints import router
+from api.reports import router as reports_router
+from api.exports import router as exports_router
+from api.incidents import router as incidents_router
 from auth.routes import router as auth_router
 from auth.seed import seed_default_user
+from correlation.models import IncidentRow  # noqa: F401 — registers table with Base
 import os
 import asyncio
 from contextlib import asynccontextmanager
@@ -31,7 +35,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="ULPF - Universal Log Pre-Processing Framework", lifespan=lifespan)
 
-# CORS — allow all origins for MVP demo
+# CORS â€” allow all origins for MVP demo
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,6 +46,9 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(router)
+app.include_router(reports_router)
+app.include_router(exports_router)
+app.include_router(incidents_router)
 
 # Serve dynamic assets from static folder
 app.mount("/assets", StaticFiles(directory="static"), name="assets")
@@ -57,6 +64,16 @@ def serve_login():
 def serve_dashboard():
     return FileResponse("dashboard/index.html")
 
+@app.get("/analytics")
+def serve_analytics():
+    return FileResponse("dashboard/analytics.html")
+
+
+@app.get("/events")
+def serve_events():
+    return FileResponse("dashboard/events.html")
+
+
 @app.get("/playground")
 def serve_playground():
     return FileResponse("dashboard/playground.html")
@@ -68,6 +85,24 @@ def serve_audit_trail():
 @app.get("/onboarding")
 def serve_onboarding():
     return FileResponse("dashboard/onboarding.html")
+
+@app.get("/observability")
+def serve_observability():
+    return FileResponse("dashboard/observability.html")
+
+@app.get("/merkle-batches")
+def serve_merkle_batches():
+    return FileResponse("dashboard/merkle-batches.html")
+
+
+@app.get("/reports")
+def serve_reports():
+    return FileResponse("dashboard/reports.html")
+
+
+@app.get("/settings")
+def serve_settings():
+    return FileResponse("dashboard/settings.html")
 
 @app.get("/dlq")
 def serve_dlq():

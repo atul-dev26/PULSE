@@ -11,8 +11,9 @@ from ingestion.service import process_ingestion
 from ingestion.splitter import split_payload
 from observability.metrics import generate_latest, CONTENT_TYPE_LATEST, get_observability_json
 from onboarding.models import PendingSourceRow
+from auth.dependencies import get_current_user
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 @router.get("/metrics")
 def metrics():
@@ -784,3 +785,141 @@ def playground_process(
 
     return result
 
+
+# --- NEW BATCHES ENDPOINTS ---
+
+@router.get("/api/v1/batches")
+def list_batches(page: int = 1, page_size: int = 25, db: Session = Depends(get_db)):
+    offset = (page - 1) * page_size
+    batches = db.query(BatchRow).order_by(BatchRow.created_at.desc()).offset(offset).limit(page_size).all()
+    total = db.query(func.count(BatchRow.batch_id)).scalar() or 0
+    
+    data = []
+    for b in batches:
+        chain_continuous = False
+        first_evt = db.query(IntegrityRecordRow).filter(IntegrityRecordRow.event_id == b.first_event_id).first()
+        if first_evt:
+            if first_evt.seq_id == 1:
+                chain_continuous = True
+            else:
+                prev_evt = db.query(IntegrityRecordRow).filter(IntegrityRecordRow.seq_id == first_evt.seq_id - 1).first()
+                if prev_evt and prev_evt.chain_hash == first_evt.previous_chain_hash:
+                    chain_continuous = True
+
+        data.append({
+            "batch_id": b.batch_id,
+            "created_at": b.created_at,
+            "event_count": b.event_count,
+            "first_event_id": b.first_event_id,
+            "last_event_id": b.last_event_id,
+            "merkle_root": b.merkle_root,
+            "anchor_reference": b.fake_tx_id,
+            "chain_continuous": chain_continuous
+        })
+        
+    return {
+        "data": data,
+        "page": page,
+        "page_size": page_size,
+        "total": total
+    }
+
+@router.get("/api/v1/batches/stats")
+def get_batch_stats(db: Session = Depends(get_db)):
+    total_batches = db.query(func.count(BatchRow.batch_id)).scalar() or 0
+    if total_batches == 0:
+        return {
+            "total_batches": 0,
+            "average_batch_size": 0,
+            "first_batch_created_at": None,
+            "latest_batch_created_at": None,
+            "overall_chain_continuous": True
+        }
+        
+    total_events = db.query(func.sum(BatchRow.event_count)).scalar() or 0
+    avg_batch_size = total_events / total_batches if total_batches > 0 else 0
+    
+    first_b = db.query(BatchRow).order_by(BatchRow.created_at.asc()).first()
+    latest_b = db.query(BatchRow).order_by(BatchRow.created_at.desc()).first()
+    
+    records = db.query(IntegrityRecordRow).order_by(IntegrityRecordRow.seq_id.asc()).all()
+    overall_continuous = True
+    for i in range(1, len(records)):
+        if records[i].previous_chain_hash != records[i-1].chain_hash:
+            overall_continuous = False
+            break
+
+    return {
+        "total_batches": total_batches,
+        "average_batch_size": round(avg_batch_size, 2),
+        "first_batch_created_at": first_b.created_at,
+        "latest_batch_created_at": latest_b.created_at,
+        "overall_chain_continuous": overall_continuous
+    }
+
+@router.get("/api/v1/batches/{batch_id}")
+def get_batch_detail(batch_id: str, db: Session = Depends(get_db)):
+    b = db.query(BatchRow).filter(BatchRow.batch_id == batch_id).first()
+    if not b:
+        raise HTTPException(status_code=404, detail="Batch not found")
+        
+    chain_continuous = False
+    first_evt = db.query(IntegrityRecordRow).filter(IntegrityRecordRow.event_id == b.first_event_id).first()
+    if first_evt:
+        if first_evt.seq_id == 1:
+            chain_continuous = True
+        else:
+            prev_evt = db.query(IntegrityRecordRow).filter(IntegrityRecordRow.seq_id == first_evt.seq_id - 1).first()
+            if prev_evt and prev_evt.chain_hash == first_evt.previous_chain_hash:
+                chain_continuous = True
+                
+    evts = db.query(IntegrityRecordRow).filter(IntegrityRecordRow.batch_id == batch_id).order_by(IntegrityRecordRow.seq_id.asc()).all()
+    event_ids = [e.event_id for e in evts]
+    
+    anchor_log_entry = None
+    try:
+        if os.path.exists("integrity/anchor_log.jsonl"):
+            with open("integrity/anchor_log.jsonl", "r") as f:
+                for line in f:
+                    entry = json.loads(line)
+                    if entry.get("batch_id") == batch_id:
+                        anchor_log_entry = entry
+                        break
+    except Exception:
+        pass
+
+    return {
+        "batch_id": b.batch_id,
+        "created_at": b.created_at,
+        "event_count": b.event_count,
+        "first_event_id": b.first_event_id,
+        "last_event_id": b.last_event_id,
+        "merkle_root": b.merkle_root,
+        "anchor_reference": b.fake_tx_id,
+        "chain_continuous": chain_continuous,
+        "event_ids": event_ids,
+        "anchor_log": anchor_log_entry
+    }
+
+@router.post("/api/v1/batches/{batch_id}/reverify")
+def reverify_batch(batch_id: str, db: Session = Depends(get_db)):
+    b = db.query(BatchRow).filter(BatchRow.batch_id == batch_id).first()
+    if not b:
+        raise HTTPException(status_code=404, detail="Batch not found")
+        
+    evts = db.query(IntegrityRecordRow).filter(IntegrityRecordRow.batch_id == batch_id).order_by(IntegrityRecordRow.seq_id.asc()).all()
+    if not evts:
+        raise HTTPException(status_code=400, detail="No events found for this batch")
+        
+    hashes = [e.chain_hash for e in evts]
+    recomputed_root = compute_merkle_root(hashes)
+    
+    match = (recomputed_root == b.merkle_root)
+    
+    return {
+        "batch_id": batch_id,
+        "recomputed_root": recomputed_root,
+        "stored_root": b.merkle_root,
+        "match": match,
+        "verified_at": datetime.utcnow()
+    }

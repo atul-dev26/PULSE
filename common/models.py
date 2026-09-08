@@ -72,3 +72,11 @@ class AuditLogEntry(Base):
     event_id = Column(String, nullable=True)
     source_id = Column(String, nullable=True)
     ip_address = Column(String, nullable=True)
+
+class UserRow(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

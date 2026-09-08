@@ -7,3 +7,7 @@ httpx>=0.25.0
 drain3>=0.9.11
 maxminddb>=2.2.0
 prometheus-client>=0.17.1
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.1,<4.2.0
+reportlab>=4.0.0

@@ -1,0 +1,1 @@
+{"event_type": "failed_login", "action": "failed_login", "src_ip": "10.0.0.42", "dst_ip": "192.168.1.1", "severity": "medium", "protocol": "ssh", "host": "auth-server-01", "product": "sshd", "vendor": "OpenSSH", "user": "admin_5", "message": "Failed password for admin_5 from 10.0.0.42 port 22 ssh2"}

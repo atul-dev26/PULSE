@@ -1209,7 +1209,15 @@
                 </svg>
                 <span class="nav-text">Dashboard</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" id="nav-analytics" href="/analytics">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="20" x2="18" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+                <span class="nav-text">Analytics</span>
+            </a>
+            <a class="nav-item" id="nav-events" href="/events">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
@@ -1234,7 +1242,7 @@
                 </svg>
                 <span class="nav-text">Quarantine</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/merkle-batches">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                     <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
@@ -1277,11 +1285,21 @@
                 </svg>
                 <span class="nav-text">Sources</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/reports">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <line x1="10" y1="9" x2="8" y2="9"/>
+                </svg>
+                <span class="nav-text">Reports</span>
+            </a>
+            <a class="nav-item" href="/observability">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                 </svg>
-                <span class="nav-text">Integrations</span>
+                <span class="nav-text">Observability</span>
             </a>
             <a class="nav-item" href="#">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1325,6 +1343,13 @@
                 <span class="search-shortcut">Ctrl+/</span>
             </div>
             <div class="header-right">
+                <button class="header-icon-btn" title="Help / Tour" onclick="triggerTour(true)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </button>
                 <button class="header-icon-btn" title="Notifications">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -1549,6 +1574,7 @@
     <div class="toast" id="toast"></div>
 
     <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/tour.js"></script>
     <script>
         // ═══════════════════════════════════════════════════════════════
         // PULSE Dashboard — JavaScript
@@ -1999,6 +2025,28 @@
     </script>
     <script src="/static/smooth-cursor.js"></script>
     <script src="/static/theme-toggler.js"></script>
+    <script>
+        const dashboardTourSteps = [
+            { selector: '#stat-total', text: 'Total Events gives you an overview of everything ingested across all sources.' },
+            { selector: '#stat-healthy', text: 'Healthy logs are those successfully parsed without critical errors.' },
+            { selector: '.stat-card[href="/dlq"]', text: 'Quarantine/DLQ tracks malformed logs that need manual review before processing.' },
+            { selector: '#stat-normalized', text: 'Normalized logs have been mapped to the standard ULPF schema.' },
+            { selector: '.stat-card[href="/merkle-batches"]', text: 'Merkle Batches securely link your events together for cryptographic integrity.' },
+            { selector: '.stat-card:nth-child(6)', text: 'Pending Sources shows new log sources waiting for configuration approval.' },
+            { selector: '#globalSearch', text: 'Use Global Search (Ctrl+/) to quickly find events, IDs, or source IPs.' },
+            { selector: '.header-user', text: 'Manage your profile and API keys from the user menu.' },
+            { selector: '.sidebar', text: 'The sidebar provides access to all ULPF modules: Processing, Security, and System.' },
+            { selector: '#collapseBtn', text: 'Collapse the sidebar to maximize your workspace view.' }
+        ];
+        function triggerTour(force) {
+            if (typeof startPulseTour !== 'undefined') {
+                startPulseTour('dashboard', dashboardTourSteps, force);
+            }
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => triggerTour(false), 1500);
+        });
+    </script>
 </body>
 
 </html>

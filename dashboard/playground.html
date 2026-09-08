@@ -763,7 +763,7 @@
                 </svg>
                 <span class="nav-text">Dashboard</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" id="nav-events" href="/events">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
@@ -794,7 +794,7 @@
                 </svg>
                 <span class="nav-text">Quarantine</span>
             </a>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/merkle-batches">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                     <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
@@ -879,6 +879,13 @@
                 <span class="search-shortcut">Ctrl+/</span>
             </div>
             <div class="header-right">
+                <button class="header-icon-btn" title="Help / Tour" onclick="triggerTour(true)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </button>
                 <div class="sandbox-badge">Sandbox</div>
                 <button class="header-icon-btn" title="Notifications">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1000,6 +1007,7 @@
     </div>
 
     <script src="/assets/js/auth.js"></script>
+    <script src="/assets/js/tour.js"></script>
     <script>
         // ── Sidebar & Clock ─────────────────────────────────────
         function toggleSidebar() {
@@ -1130,6 +1138,29 @@
         PulseAuth.requireAuth();
     </script>
     <script src="/static/theme-toggler.js"></script>
+    <script>
+        const playgroundTourSteps = [
+            { selector: '.sandbox-badge', text: 'You are in the Sandbox, an isolated environment that does not affect production data.' },
+            { selector: '.presets', text: 'Use Preset Buttons to quickly load sample log formats (CEF, Syslog, JSON) into the editor.' },
+            { selector: '#logInput', text: 'Paste your raw log data into this editor pane to test how it is processed.' },
+            { selector: '#btnProcess', text: 'Click Process Payload to manually trigger the end-to-step ULPF pipeline.' },
+            { selector: '.pipeline-stages, .stage', text: 'The six-stage pipeline processes your raw log step-by-step through normalization to correlation.' },
+            { selector: '#panel-ingest', text: 'Ingest: Verify the log is accepted and minimally formatted.' },
+            { selector: '#panel-parse', text: 'Parse: The raw string is broken down into base key-value pairs.' },
+            { selector: '#panel-normalize', text: 'Normalize: Keys are mapped to the standard ULPF schema for consistency.' },
+            { selector: '#panel-enrich', text: 'Enrich: Threat intelligence and context are appended to the normalized event.' },
+            { selector: '#panel-correlate', text: 'Correlate: The event is evaluated against detection rules to flag incidents.' },
+            { selector: '#panel-vault', text: 'Vault: The final payload is cryptographically hashed and prepared for immutable storage.' }
+        ];
+        function triggerTour(force) {
+            if (typeof startPulseTour !== 'undefined') {
+                startPulseTour('playground', playgroundTourSteps, force);
+            }
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => triggerTour(false), 1500);
+        });
+    </script>
 </body>
 
 </html>

@@ -136,8 +136,7 @@ See `assets/screenshots/`.
 
 ## 11. Installation
 ```bash
-git clone <YOUR_REPOSITORY_URL>
-cgit clone https://github.com/atul-dev26/PULSE PULSE-ULPF
+git clone https://github.com/atul-dev26/PULSE PULSE-ULPF
 cd PULSE-ULPF
 pip install -r requirements.txt
 

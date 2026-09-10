@@ -1,15 +1,20 @@
-version: '3.8'
-
 services:
   ulpf:
     build: .
     container_name: ulpf-core
     ports:
-      - "8000:8000"
+      - "8000:8000"       # HTTP API + Dashboard
+      - "5514:5514/udp"   # UDP Syslog listener
     volumes:
-      - ./raw:/app/raw
-      - ./ulpf.db:/app/ulpf.db
-      - ./integrity/anchor_log.jsonl:/app/integrity/anchor_log.jsonl
+      - ulpf-raw:/app/raw                     # Raw evidence .raw files
+      - ulpf-integrity:/app/integrity         # anchor_log.jsonl + integrity data
+      - ulpf-db:/app/data                     # SQLite database
     environment:
       - PYTHONUNBUFFERED=1
+      - DATABASE_PATH=/app/data/ulpf.db       # Store DB inside the mounted volume
     restart: unless-stopped
+
+volumes:
+  ulpf-raw:
+  ulpf-integrity:
+  ulpf-db:

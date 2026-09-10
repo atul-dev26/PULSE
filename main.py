@@ -21,10 +21,11 @@ seed_default_user()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    host = os.environ.get("UDP_HOST", "0.0.0.0")
     port = int(os.environ.get("UDP_PORT", 5514))
     transport = None
     try:
-        transport, _ = await start_udp_server("127.0.0.1", port)
+        transport, _ = await start_udp_server(host, port)
     except OSError as e:
         print(f"Warning: UDP server failed to bind to {port}. {e}")
         
@@ -43,6 +44,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 app.include_router(auth_router)
 app.include_router(router)

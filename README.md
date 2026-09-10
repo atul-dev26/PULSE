@@ -121,9 +121,10 @@ See `assets/screenshots/`.
 
 ## 11. Installation
 ```bash
-git clone https://github.com/atul-dev26/PULSE
+git clone https://github.com/atul-dev26/PULSE PULSE-ULPF
 cd PULSE-ULPF
 pip install -r requirements.txt
+
 ```
 
 Or, using Docker (recommended):

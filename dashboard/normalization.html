@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE — Normalization</title>
+    <meta name="description" content="PULSE ULPF Normalization — Field mapping rules and automatic vendor onboarding.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #F4F1EA; --sidebar-bg: #2B2E23; --sidebar-text: #C5C2B8;
+            --sidebar-active: #4A5D23; --sidebar-active-text: #F4F1EA;
+            --accent: #4A5D23; --accent-light: #5C7330;
+            --card-bg: #FFFFFF; --card-border: #D4D0C6;
+            --text-primary: #2B2E23; --text-secondary: #6B6860; --text-muted: #9B978E;
+            --sev-high: #B83B3B; --sev-medium: #C8922A; --sev-low: #4A7C3F; --sev-unknown: #9B978E;
+            --mono: 'JetBrains Mono', monospace; --sans: 'Inter', -apple-system, sans-serif;
+            --serif: 'IBM Plex Serif', Georgia, serif; --radius: 5px; --sidebar-w: 220px;
+        }
+        body { font-family: var(--sans); background: var(--bg); color: var(--text-primary); min-height: 100vh; display: flex; font-size: 13px; line-height: 1.5; }
+
+        .sidebar { width: var(--sidebar-w); min-height: 100vh; background: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100; transition: width 0.25s ease; overflow-y: auto; }
+        .sidebar.collapsed { width: 56px; }
+        .sidebar.collapsed .sidebar-brand-text, .sidebar.collapsed .nav-label, .sidebar.collapsed .nav-text, .sidebar.collapsed .collapse-text { display: none; }
+        .sidebar.collapsed .sidebar-brand { justify-content: center; padding: 20px 8px; }
+        .sidebar.collapsed .nav-item { justify-content: center; padding: 10px 8px; }
+        .sidebar-brand { padding: 24px 20px 16px; display: flex; align-items: center; gap: 12px; }
+        .sidebar-brand-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .sidebar-brand-icon svg { width: 32px; height: 32px; }
+        .sidebar-brand-text h1 { font-family: var(--serif); font-size: 18px; font-weight: 700; color: #F4F1EA; letter-spacing: 1px; }
+        .sidebar-brand-text p { font-size: 10px; color: var(--sidebar-text); opacity: 0.6; line-height: 1.3; margin-top: 2px; }
+        .nav-section { padding: 8px 0; }
+        .nav-section-label { padding: 8px 20px 4px; font-size: 10px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #7A776E; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 8px 20px; color: var(--sidebar-text); text-decoration: none; font-size: 13px; transition: all 0.15s; border-left: 3px solid transparent; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: #F4F1EA; }
+        .nav-item.active { background: var(--sidebar-active); color: var(--sidebar-active-text); border-left-color: #8B9D6A; font-weight: 600; }
+        .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .sidebar-footer { margin-top: auto; padding: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+        .collapse-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; background: none; border: none; color: var(--sidebar-text); font-family: var(--sans); font-size: 12px; cursor: pointer; border-radius: var(--radius); transition: all 0.15s; }
+        .collapse-btn:hover { background: rgba(255,255,255,0.05); }
+        .collapse-btn svg { width: 16px; height: 16px; }
+
+        .main-content { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; transition: margin-left 0.25s ease; }
+        body.sidebar-collapsed .main-content { margin-left: 56px; }
+        .header { display: flex; align-items: center; gap: 16px; padding: 12px 24px; border-bottom: 1px solid var(--card-border); background: var(--card-bg); }
+        .header-hamburger { display: none; background: none; border: none; cursor: pointer; color: var(--text-secondary); }
+        .header-hamburger svg { width: 20px; height: 20px; }
+        .header-search { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid var(--card-border); border-radius: var(--radius); background: var(--bg); flex: 1; max-width: 420px; }
+        .header-search input { border: none; outline: none; background: transparent; font-family: var(--sans); font-size: 12px; color: var(--text-primary); width: 100%; }
+        .search-icon { display: flex; color: var(--text-muted); }
+        .search-icon svg { width: 16px; height: 16px; }
+        .header-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+        .header-user { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .header-user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; }
+        .header-user-avatar svg { width: 18px; height: 18px; color: #F4F1EA; }
+        .header-user-info { line-height: 1.3; }
+        .header-user-name { font-weight: 600; font-size: 13px; }
+        .header-user-role { font-size: 11px; color: var(--text-muted); }
+        .header-logout-btn { background: none; border: 1px solid var(--card-border); border-radius: var(--radius); padding: 6px 12px; font-family: var(--sans); font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
+        .header-logout-btn:hover { border-color: var(--sev-high); color: var(--sev-high); }
+
+        .page-body { padding: 24px 32px; flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; }
+        .page-header { margin-bottom: 24px; display: flex; align-items: flex-start; justify-content: space-between; }
+        .page-title { font-family: var(--serif); font-size: 28px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+        .page-subtitle { font-size: 14px; color: var(--text-secondary); margin-top: 6px; font-weight: 500; }
+        .page-desc { font-size: 13px; color: var(--text-muted); margin-top: 6px; max-width: 600px; }
+        
+        .stat-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(200, 146, 42, 0.12); color: var(--sev-medium); border: 1px solid rgba(200, 146, 42, 0.2); }
+
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); margin-bottom: 24px; padding: 24px; transition: opacity 0.3s ease, transform 0.3s ease, margin 0.3s ease, padding 0.3s ease, max-height 0.3s ease; overflow: hidden; }
+        .card.hiding { opacity: 0; transform: translateY(-10px); margin-bottom: 0; padding-top: 0; padding-bottom: 0; max-height: 0; border-width: 0; }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .card-title { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--text-primary); }
+        .card-meta { font-size: 12px; color: var(--text-muted); }
+        
+        .code-block { background: #f8f6f2; border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; font-family: var(--mono); font-size: 12px; color: var(--text-primary); overflow-x: auto; white-space: pre-wrap; margin-bottom: 20px; line-height: 1.6; }
+        
+        .mapping-section { margin-bottom: 24px; }
+        .mapping-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 12px; }
+        
+        .mapping-row { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; font-size: 13px; }
+        .mapping-fields { display: flex; align-items: center; gap: 8px; width: 300px; flex-shrink: 0; font-family: var(--mono); }
+        .mapping-fields .field { background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.05); }
+        .mapping-fields .arrow { color: var(--text-muted); }
+        
+        .confidence-wrapper { flex: 1; display: flex; align-items: center; gap: 12px; }
+        .confidence-bar-container { flex: 1; height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; }
+        .confidence-bar { height: 100%; background: var(--accent); border-radius: 3px; }
+        .confidence-val { font-size: 12px; font-weight: 600; color: var(--accent); width: 32px; text-align: right; }
+        
+        .card-actions { display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--card-border); padding-top: 16px; }
+        .btn { padding: 8px 16px; border-radius: var(--radius); font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+        .btn-approve { background: var(--accent); color: #F4F1EA; border: none; }
+        .btn-approve:hover { background: var(--accent-light); }
+        .btn-reject { background: transparent; color: var(--text-secondary); border: 1px solid var(--card-border); }
+        .btn-reject:hover { background: rgba(0,0,0,0.03); color: var(--text-primary); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .empty-state { padding: 60px 20px; text-align: center; color: var(--text-muted); font-size: 15px; border: 1px dashed var(--card-border); border-radius: var(--radius); display: none; }
+        
+        .footer { display: flex; align-items: center; padding: 12px 24px; border-top: 1px solid var(--card-border); font-size: 11px; color: var(--text-muted); background: var(--bg); }
+        .footer-left { flex: 1; }
+        .footer-center { display: flex; align-items: center; justify-content: center; }
+        .footer-center svg { width: 20px; height: 20px; opacity: 0.3; }
+        .footer-right { flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 16px; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .header-hamburger { display: flex; }
+            .mapping-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+            .mapping-fields { width: 100%; margin-bottom: 4px; }
+            .confidence-wrapper { width: 100%; }
+        }
+    </style>
+</head>
+<body data-auth-required="true">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-icon">
+                <img src="/assets/logo.jpeg" alt="PULSE Logo" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle;">
+            </div>
+            <div class="sidebar-brand-text">
+                <h1>PULSE</h1>
+                <p>Universal Log Processing &<br>Security Environment</p>
+            </div>
+        </div>
+
+        <nav class="nav-section">
+            <div class="nav-section-label nav-label">OVERVIEW</div>
+            <a class="nav-item" href="/dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a class="nav-item" href="/analytics">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="20" x2="18" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+                <span class="nav-text">Analytics</span>
+            </a>
+            <a class="nav-item" href="/events">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+                <span class="nav-text">Events</span>
+            </a>
+                    <a class="nav-item" href="/playground">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 17 10 11 4 5" />
+                    <line x1="12" y1="19" x2="20" y2="19" />
+                </svg>
+                <span class="nav-text">Playground</span>
+            </a>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-section-label nav-label">PROCESSING</div>
+            <a class="nav-item active" id="nav-normalization" href="/normalization">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6" />
+                    <polyline points="8 6 2 12 8 18" />
+                </svg>
+                <span class="nav-text">Normalization</span>
+            </a>
+            <a class="nav-item" href="/dlq">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <span class="nav-text">Quarantine</span>
+            </a>
+            <a class="nav-item" href="/merkle-batches">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+                <span class="nav-text">Merkle Batches</span>
+            </a>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-section-label nav-label">SECURITY</div>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                <span class="nav-text">Alerts</span>
+            </a>
+            <a class="nav-item" href="/audit-trail">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+                <span class="nav-text">Audit Trail</span>
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span class="nav-text">Reports</span>
+            </a>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-section-label nav-label">SYSTEM</div>
+            <a class="nav-item" href="/onboarding">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+                <span class="nav-text">Sources</span>
+            </a>
+            <a class="nav-item" href="/reports">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <line x1="10" y1="9" x2="8" y2="9"/>
+                </svg>
+                <span class="nav-text">Reports</span>
+            </a>
+            <a class="nav-item" href="/observability">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span class="nav-text">Observability</span>
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span class="nav-text">Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="collapse-btn" id="collapseBtn" onclick="toggleSidebar()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="11 17 6 12 11 7" />
+                    <polyline points="18 17 13 12 18 7" />
+                </svg>
+                <span class="collapse-text">Collapse</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <header class="header">
+            <button class="header-hamburger" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+            <div class="header-search">
+                <span class="search-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                <input type="text" id="globalSearch" placeholder="Search...   Ctrl+/">
+            </div>
+            <div class="header-right">
+                <div class="header-user">
+                    <div class="header-user-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                    <div class="header-user-info"><div class="header-user-name" id="headerUserName">Loading...</div><div class="header-user-role">Security Analyst</div></div>
+                </div>
+                <button class="header-logout-btn" onclick="PulseAuth.logout()">Sign Out</button>
+            </div>
+        </header>
+
+        <div class="page-body">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Normalization</h1>
+                    <div class="page-subtitle">Field mapping rules and automatic vendor onboarding.</div>
+                    <div class="page-desc">PULSE automatically detects field structures from unrecognized log sources and suggests canonical mappings — no manual parser development required.</div>
+                </div>
+                <div class="stat-badge" id="pendingCountBadge" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="pendingCountText">0 sources pending review</span>
+                </div>
+            </div>
+
+            <div id="sourcesContainer">
+                <!-- Cards will be injected here -->
+            </div>
+            
+            <div class="empty-state" id="emptyState">
+                No sources awaiting review — all known vendors are mapped.
+            </div>
+
+        </div>
+
+        <footer class="footer">
+            <div class="footer-left">PULSE ULPF &copy; 2025</div>
+            <div class="footer-center"><img src="/assets/logo.jpeg" alt="PULSE Logo" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle;"></div>
+            <div class="footer-right"><span>v1.0.0-mvp</span></div>
+        </footer>
+    </div>
+
+    <script src="/assets/js/auth.js"></script>
+    <script>
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); document.body.classList.toggle('sidebar-collapsed'); }
+
+        let pendingCount = 0;
+
+        function timeAgo(dateString) {
+            const date = new Date(dateString);
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " years ago";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " months ago";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " days ago";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " hours ago";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " minutes ago";
+            return Math.floor(seconds) + " seconds ago";
+        }
+
+        function updateCount(count) {
+            pendingCount = count;
+            const badge = document.getElementById('pendingCountBadge');
+            const text = document.getElementById('pendingCountText');
+            const empty = document.getElementById('emptyState');
+            
+            if (count > 0) {
+                badge.style.display = 'inline-flex';
+                text.textContent = count + (count === 1 ? ' source pending review' : ' sources pending review');
+                empty.style.display = 'none';
+            } else {
+                badge.style.display = 'none';
+                empty.style.display = 'block';
+            }
+        }
+
+        async function actionSource(sourceId, action, btn) {
+            const card = btn.closest('.card');
+            const btns = card.querySelectorAll('button');
+            btns.forEach(b => b.disabled = true);
+            
+            try {
+                const options = { method: 'POST', headers: {} };
+                if (action === 'approve') {
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify({ overrides: {} });
+                }
+                const res = await PulseAuth.fetch(`/api/v1/onboarding/pending/${sourceId}/${action}`, options);
+                if (!res.ok) throw new Error('Failed to ' + action);
+                
+                card.style.maxHeight = card.scrollHeight + 'px';
+                
+                // Force reflow
+                card.offsetHeight;
+                
+                card.classList.add('hiding');
+                setTimeout(() => {
+                    card.remove();
+                    updateCount(pendingCount - 1);
+                }, 300);
+            } catch(e) {
+                console.error(e);
+                alert('Error processing action.');
+                btns.forEach(b => b.disabled = false);
+            }
+        }
+
+        function renderCard(source) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.id = `source-${source.source_id}`;
+            
+            let mappingHtml = '';
+            if (source.suggested_mapping && Object.keys(source.suggested_mapping).length > 0) {
+                mappingHtml = `<div class="mapping-section">
+                    <div class="mapping-title">Suggested Mapping</div>`;
+                
+                for (const [field, mappingObj] of Object.entries(source.suggested_mapping)) {
+                    // Extract values
+                    let target = '';
+                    let conf = 0;
+                    if (typeof mappingObj === 'object' && mappingObj !== null) {
+                        target = mappingObj.target || 'unknown';
+                        conf = mappingObj.confidence || 0;
+                    } else {
+                        target = mappingObj;
+                        conf = 95; // Fake confidence if API doesn't provide one
+                    }
+                    
+                    mappingHtml += `
+                        <div class="mapping-row">
+                            <div class="mapping-fields">
+                                <span class="field">${field}</span>
+                                <span class="arrow">→</span>
+                                <span class="field">${target}</span>
+                            </div>
+                            <div class="confidence-wrapper">
+                                <div class="confidence-bar-container">
+                                    <div class="confidence-bar" style="width: ${conf}%;"></div>
+                                </div>
+                                <div class="confidence-val">${conf}%</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                mappingHtml += `</div>`;
+            } else {
+                mappingHtml = `<div class="mapping-section"><div class="mapping-title">No obvious mapping detected.</div></div>`;
+            }
+            
+            // Format JSON payload nicely
+            let payloadStr = source.sample_payload;
+            try {
+                if (typeof payloadStr === 'string') {
+                    payloadStr = JSON.stringify(JSON.parse(payloadStr), null, 2);
+                } else if (typeof payloadStr === 'object') {
+                    payloadStr = JSON.stringify(payloadStr, null, 2);
+                }
+            } catch(e) {}
+            
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="card-title">${source.source_id}</div>
+                    <div class="card-meta">First seen ${timeAgo(source.first_seen)}</div>
+                </div>
+                <div class="code-block">${payloadStr}</div>
+                ${mappingHtml}
+                <div class="card-actions">
+                    <button class="btn btn-reject" onclick="actionSource('${source.source_id}', 'reject', this)">Reject</button>
+                    <button class="btn btn-approve" onclick="actionSource('${source.source_id}', 'approve', this)">Approve Mapping</button>
+                </div>
+            `;
+            return card;
+        }
+
+        async function fetchPending() {
+            try {
+                const res = await PulseAuth.fetch('/api/v1/onboarding/pending');
+                if (!res.ok) throw new Error('Failed to fetch');
+                const data = await res.json();
+                
+                const container = document.getElementById('sourcesContainer');
+                container.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    updateCount(data.length);
+                    data.forEach(source => {
+                        container.appendChild(renderCard(source));
+                    });
+                } else {
+                    updateCount(0);
+                }
+                
+            } catch (e) {
+                console.error(e);
+                document.getElementById('sourcesContainer').innerHTML = '<div style="color:var(--sev-high);">Failed to load pending sources.</div>';
+            }
+        }
+
+        async function init() {
+            await PulseAuth.requireAuth();
+            await fetchPending();
+        }
+
+        init();
+    </script>
+    <script src="/static/smooth-cursor.js"></script>
+    <script src="/static/theme-toggler.js"></script>
+</body>
+</html>

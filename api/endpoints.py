@@ -88,6 +88,8 @@ def list_events(
     format: str = None,
     severity: str = None,
     status: str = None,
+    search: str = None,
+    last_24h: bool = False,
     db: Session = Depends(get_db)
 ):
     from sqlalchemy import func
@@ -119,6 +121,16 @@ def list_events(
             query = query.filter(CanonicalEventRow.event_id != None)
         elif status.upper() in ("FAILED", "DLQ"):
             query = query.filter(DLQRecordRow.event_id != None)
+    if search:
+        search_term = f"%{search.strip()}%"
+        query = query.filter(
+            (RawEventRow.event_id.ilike(search_term)) |
+            (RawEventRow.source_id.ilike(search_term))
+        )
+    if last_24h:
+        from datetime import datetime, timedelta, timezone
+        twenty_four_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+        query = query.filter(RawEventRow.received_at >= twenty_four_hours_ago)
 
     # Pagination
     total_events = query.count()

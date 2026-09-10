@@ -1,0 +1,1 @@
+{"event_type": "firewall", "src_ip": "192.168.1.147", "dest_ip": "10.0.0.151", "action": "DROP", "src_port": 23317, "dest_port": 80, "severity": "high"}

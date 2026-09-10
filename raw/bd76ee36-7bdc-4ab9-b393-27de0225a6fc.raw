@@ -1,0 +1,1 @@
+custom_app_log user=admin action=login ip=10.10.10.119 status=success reason=auth_ok session_id=7877

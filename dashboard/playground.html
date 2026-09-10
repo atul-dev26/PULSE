@@ -738,13 +738,7 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
             <div class="sidebar-brand-icon">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 4C14 4 10 8 10 14C10 20 14 28 20 36C26 28 30 20 30 14C30 8 26 4 20 4Z" stroke="#8B9D6A"
-                        stroke-width="1.5" fill="none" />
-                    <circle cx="20" cy="14" r="4" stroke="#8B9D6A" stroke-width="1.5" fill="none" />
-                    <path d="M6 20Q20 26 34 20" stroke="#8B9D6A" stroke-width="1" fill="none" opacity="0.5" />
-                    <path d="M8 24Q20 30 32 24" stroke="#8B9D6A" stroke-width="1" fill="none" opacity="0.3" />
-                </svg>
+                <img src="/assets/logo.jpeg" alt="PULSE Logo" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle;">
             </div>
             <div class="sidebar-brand-text">
                 <h1>PULSE</h1>
@@ -763,7 +757,15 @@
                 </svg>
                 <span class="nav-text">Dashboard</span>
             </a>
-            <a class="nav-item" id="nav-events" href="/events">
+            <a class="nav-item" href="/analytics">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="20" x2="18" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+                <span class="nav-text">Analytics</span>
+            </a>
+            <a class="nav-item" href="/events">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
@@ -772,16 +774,17 @@
                 </svg>
                 <span class="nav-text">Events</span>
             </a>
-            <a class="nav-item active" href="/playground">
+                    <a class="nav-item active" href="/playground">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                    <polyline points="4 17 10 11 4 5" />
+                    <line x1="12" y1="19" x2="20" y2="19" />
                 </svg>
                 <span class="nav-text">Playground</span>
             </a>
         </nav>
         <nav class="nav-section">
             <div class="nav-section-label nav-label">PROCESSING</div>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/normalization">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="16 18 22 12 16 6" />
                     <polyline points="8 6 2 12 8 18" />
@@ -836,6 +839,22 @@
                     <line x1="12" y1="17" x2="12" y2="21" />
                 </svg>
                 <span class="nav-text">Sources</span>
+            </a>
+            <a class="nav-item" href="/reports">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <line x1="10" y1="9" x2="8" y2="9"/>
+                </svg>
+                <span class="nav-text">Reports</span>
+            </a>
+            <a class="nav-item" href="/observability">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                <span class="nav-text">Observability</span>
             </a>
             <a class="nav-item" href="#">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -994,11 +1013,7 @@
         <footer class="footer">
             <div class="footer-left">© 2025 PULSE – ULPF. All rights reserved.</div>
             <div class="footer-center">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 4C14 4 10 8 10 14C10 20 14 28 20 36C26 28 30 20 30 14C30 8 26 4 20 4Z" stroke="#8B9D6A"
-                        stroke-width="1.5" fill="none" />
-                    <circle cx="20" cy="14" r="4" stroke="#8B9D6A" stroke-width="1.5" fill="none" />
-                </svg>
+                <img src="/assets/logo.jpeg" alt="PULSE Logo" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle;">
             </div>
             <div class="footer-right">
                 <span><span class="footer-dot"></span>System Time: <span id="footerClock"></span> IST</span>

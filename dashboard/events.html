@@ -1124,6 +1124,10 @@
         }
 
         /* ── Splash Screen ───────────────────────────── */
+        body.splash-active {
+            overflow: hidden !important;
+        }
+
         #splash-screen {
             position: fixed;
             top: 0;
@@ -1509,20 +1513,57 @@
     <script>
         if (!sessionStorage.getItem('introPlayed')) {
             document.getElementById('splash-screen').style.display = 'flex';
+            document.body.classList.add('splash-active');
         }
+
+        // Splash screen control — defined early so the Skip button works
+        function hideSplash() {
+            const splash = document.getElementById('splash-screen');
+            if (splash && splash.style.display !== 'none') {
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                    document.body.classList.remove('splash-active');
+                    // Trigger tour after splash finishes
+                    if (typeof triggerTour === 'function') {
+                        setTimeout(() => triggerTour(false), 800);
+                    }
+                }, 500);
+            }
+        }
+
+        function initSplash() {
+            const splash = document.getElementById('splash-screen');
+            const video = document.getElementById('splash-video');
+
+            if (sessionStorage.getItem('introPlayed')) {
+                splash.style.display = 'none';
+                document.body.classList.remove('splash-active');
+                return;
+            }
+
+            sessionStorage.setItem('introPlayed', 'true');
+
+            video.play().catch(e => {
+                console.warn('Splash video autoplay prevented or failed:', e);
+                hideSplash();
+            });
+
+            video.onended = hideSplash;
+            video.onerror = hideSplash;
+
+            // Failsafe timeout
+            setTimeout(hideSplash, 10000);
+        }
+
+        initSplash();
     </script>
 
     <!-- ══════════════════════════════════════════════════ SIDEBAR ══ -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
             <div class="sidebar-brand-icon">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 4C14 4 10 8 10 14C10 20 14 28 20 36C26 28 30 20 30 14C30 8 26 4 20 4Z" stroke="#8B9D6A"
-                        stroke-width="1.5" fill="none" />
-                    <circle cx="20" cy="14" r="4" stroke="#8B9D6A" stroke-width="1.5" fill="none" />
-                    <path d="M6 20Q20 26 34 20" stroke="#8B9D6A" stroke-width="1" fill="none" opacity="0.5" />
-                    <path d="M8 24Q20 30 32 24" stroke="#8B9D6A" stroke-width="1" fill="none" opacity="0.3" />
-                </svg>
+                <img src="/assets/logo.jpeg" alt="PULSE Logo" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle;">
             </div>
             <div class="sidebar-brand-text">
                 <h1>PULSE</h1>
@@ -1532,7 +1573,7 @@
 
         <nav class="nav-section">
             <div class="nav-section-label nav-label">OVERVIEW</div>
-            <a class="nav-item" id="nav-dashboard" href="/dashboard">
+            <a class="nav-item" href="/dashboard">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="7" height="7" rx="1" />
                     <rect x="14" y="3" width="7" height="7" rx="1" />
@@ -1541,7 +1582,7 @@
                 </svg>
                 <span class="nav-text">Dashboard</span>
             </a>
-            <a class="nav-item" id="nav-analytics" href="/analytics">
+            <a class="nav-item" href="/analytics">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="20" x2="18" y2="10" />
                     <line x1="12" y1="20" x2="12" y2="4" />
@@ -1558,10 +1599,17 @@
                 </svg>
                 <span class="nav-text">Events</span>
             </a>
+                    <a class="nav-item" href="/playground">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 17 10 11 4 5" />
+                    <line x1="12" y1="19" x2="20" y2="19" />
+                </svg>
+                <span class="nav-text">Playground</span>
+            </a>
         </nav>
         <nav class="nav-section">
             <div class="nav-section-label nav-label">PROCESSING</div>
-            <a class="nav-item" href="#">
+            <a class="nav-item" href="/normalization">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="16 18 22 12 16 6" />
                     <polyline points="8 6 2 12 8 18" />
@@ -1934,8 +1982,12 @@
                 startPulseTour('events', eventsTourSteps, force);
             }
         }
+        // Tour is triggered by hideSplash() after the intro finishes.
+        // If intro was already played (sessionStorage), trigger normally.
         window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => triggerTour(false), 1500);
+            if (sessionStorage.getItem('introPlayed')) {
+                setTimeout(() => triggerTour(false), 1500);
+            }
         });
     </script>
 </body>

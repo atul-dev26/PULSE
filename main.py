@@ -86,6 +86,10 @@ def serve_audit_trail():
 def serve_onboarding():
     return FileResponse("dashboard/onboarding.html")
 
+@app.get("/normalization")
+def serve_normalization():
+    return FileResponse("dashboard/normalization.html")
+
 @app.get("/observability")
 def serve_observability():
     return FileResponse("dashboard/observability.html")

@@ -1,0 +1,1 @@
+CEF:0|Security|ThreatManager|1.0|100|Malware Detected|8|src=10.10.10.141 dst=172.16.0.189 spt=35048 dpt=443 act=blocked

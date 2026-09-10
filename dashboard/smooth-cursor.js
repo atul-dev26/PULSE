@@ -12,16 +12,15 @@
         #magic-cursor-container {
             position: fixed;
             top: 0; left: 0;
-            z-index: 100;
+            z-index: 99999;
             pointer-events: none;
             will-change: transform;
             opacity: 0;
             transition: opacity 0.15s ease;
             transform-origin: center center;
         }
-        body { cursor: none; }
-        a, button, input, select { cursor: none; }
-        .nav-item, .stat-card, tr, .collapse-btn { cursor: none; }
+        *, *::before, *::after { cursor: none !important; }
+        body.splash-active #magic-cursor-container { opacity: 0 !important; }
     `;
     document.head.appendChild(style);
 

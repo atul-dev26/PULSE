@@ -1,0 +1,1 @@
+{"event_type": "firewall", "src_ip": "10.0.0.63", "dest_ip": "192.168.1.146", "action": "ALLOW", "src_port": 63236, "dest_port": 80, "severity": "high"}

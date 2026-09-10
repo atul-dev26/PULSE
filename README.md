@@ -29,6 +29,20 @@ PULSE ingests security logs from any source, in any format, and automatically de
 - Live dashboard, event investigation console, analytics/incident view, and interactive playground for testing arbitrary log input
 - Fully containerized (Docker/Docker Compose), designed for air-gapped deployment
 
+## Screenshots
+
+### Dashboard
+![Dashboard](assets/screenshots/dashboard.png)
+
+### Event Detail & Trust Score
+![Event Detail](assets/screenshots/event-detail.png)
+
+### Attack Correlation
+![Attack Correlation](assets/screenshots/analytics-incident.png)
+
+### Self-Learning Onboarding
+![Onboarding](assets/screenshots/onboarding.png)
+
 ## 5. Technology Stack
 - Frontend: HTML, CSS, JavaScript, Chart.js
 - Backend: Python, FastAPI, SQLAlchemy, Uvicorn, Pydantic

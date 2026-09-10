@@ -13,32 +13,12 @@ The **Universal Log Pre-Processing Framework (ULPF)** is a vendor-neutral log pr
    python -m uvicorn main:app --reload
    ```
 
-### Option B: Docker (Containerized / Air-gapped / Cloud Deployment)
+### Option B: Docker (Containerized/Air-gapped deployment)
 1. Build and run the container using Docker Compose:
    ```bash
-   docker-compose up --build
+   docker-compose up --build -d
    ```
-   Add `-d` to run in detached (background) mode.
-
-2. The application will be accessible at:
-   - **Dashboard**: [http://localhost:8000/dashboard](http://localhost:8000/dashboard)
-   - **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-   - **Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
-
-3. To stop and clean up:
-   ```bash
-   docker-compose down           # Stops containers (keeps data volumes)
-   docker-compose down -v        # Stops containers AND deletes data volumes
-   ```
-
-### Persistent Data Paths (inside the container)
-When deploying to a hosting platform (Render, Railway, etc.), mount a persistent disk at these paths:
-
-| Data | Container Path | Description |
-|------|---------------|-------------|
-| SQLite Database | `/app/data/ulpf.db` | Main application database |
-| Raw Evidence | `/app/raw/` | Raw log payloads (`.raw` files) |
-| Anchor Log | `/app/integrity/anchor_log.jsonl` | Mock blockchain anchor records |
+2. The application will be accessible at `http://localhost:8000`. Storage for raw logs and the SQLite database will be mounted as local volumes.
 
 ## Quick Links
 

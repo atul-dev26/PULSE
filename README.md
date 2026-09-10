@@ -1,58 +1,154 @@
-# ULPF - Universal Log Pre-Processing Framework
+# PULSE — Universal Log Pre-Processing Framework (ULPF)
 
-The **Universal Log Pre-Processing Framework (ULPF)** is a vendor-neutral log processing pipeline designed to ingest, normalize, and secure audit trails at scale. It normalizes disparate log formats into a canonical schema while applying a robust cryptographic integrity and tamper-evidence layer, ensuring that critical security data remains provably unmodified from ingestion to analysis.
+## 1. Project Information
+Project Title: PULSE – Universal Log Pre-Processing Framework
+PS ID: 26156
+PS Title: Universal Log Pre-processing Framework (ULPF)
+Category: Software
+Theme: Cybersecurity and Blockchain
 
-## Setup Instructions
+## 2. Problem Statement
+Modern enterprises generate massive volumes of logs from firewalls, servers, VPNs, cloud platforms, and applications, in diverse formats such as Syslog, JSON, CEF, LEEF, and proprietary vendor schemas. This diversity forces security teams to hand-write and maintain source-specific parsers before data becomes usable for SIEM, data lake, or ML platforms — a slow, costly, and non-scalable process that also risks losing forensic integrity of the original evidence.
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Start the server (development mode):
-   ```bash
-   python -m uvicorn main:app --reload
-   ```
+## 3. Proposed Solution
+PULSE ingests security logs from any source, in any format, and automatically detects, parses, and normalizes them into a single unified, OCSF-aligned schema — while preserving the original raw evidence losslessly. Every event is cryptographically hashed, chained, and anchored via Merkle proofs, producing a computed Evidence Trust Score that makes tampering instantly detectable. When an unrecognized vendor source is encountered, PULSE automatically suggests a confidence-scored field mapping instead of requiring manual parser development. Related events are further correlated into detected incidents mapped to MITRE ATT&CK techniques, and normalized output is exportable directly to SIEM and data lake systems (CSV/JSON/CEF).
 
-### Option B: Docker (Containerized/Air-gapped deployment)
-1. Build and run the container using Docker Compose:
-   ```bash
-   docker-compose up --build -d
-   ```
-2. The application will be accessible at `http://localhost:8000`. Storage for raw logs and the SQLite database will be mounted as local volumes.
+## 4. Key Features
+- Universal log ingestion (JSON, Syslog, CEF, LEEF, and unstructured formats via Drain3 fallback)
+- Automatic format detection and multi-log-per-request splitting (JSON arrays, NDJSON, multi-line Syslog)
+- Real native UDP Syslog listener, in addition to REST ingestion
+- Normalization into a unified, OCSF-aligned schema
+- Cryptographic integrity: SHA-256 hashing, hash chain, Merkle tree batching, tamper-evident verification
+- Self-learning field-mapping onboarding for new/unrecognized log sources, with confidence scoring
+- Computed Evidence Trust Score (weighted, documented formula) per event
+- Chain-of-custody certificate export (self-verifying, tamper-evident document)
+- Rule-based attack correlation engine mapped to MITRE ATT&CK techniques
+- Dead Letter Queue for failed/unparseable events (raw evidence always preserved)
+- SIEM/Data Lake export (CSV, JSON, CEF re-emission)
+- JWT-based authentication securing all API access
+- Live dashboard, event investigation console, analytics/incident view, and interactive playground for testing arbitrary log input
+- Fully containerized (Docker/Docker Compose), designed for air-gapped deployment
 
-## Quick Links
+## 5. Technology Stack
+- Frontend: HTML, CSS, JavaScript, Chart.js
+- Backend: Python, FastAPI, SQLAlchemy, Uvicorn, Pydantic
+- Log Parsing: Custom format detector, Drain3 (unstructured log template mining)
+- Security: SHA-256, Merkle trees, JWT (bcrypt password hashing)
+- Database: SQLite (MVP) — architected for direct migration to PostgreSQL at scale
+- Storage: Local filesystem (raw evidence), append-only ledger (integrity anchor)
+- Testing: Pytest
+- Deployment: Docker, Docker Compose
 
-- **Live Dashboard**: [http://127.0.0.1:8000/dashboard](http://127.0.0.1:8000/dashboard)
-- **API Swagger Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+## 6. Architecture
+See `docs/architecture.md`.
+Log Sources (Firewall/Server/VPN/Cloud)
+|
+v
+Ingestion Gateway (REST API + UDP Syslog Listener)
+|
+v
+Format Detection & Splitter
+|
+v
+Parser Engine (JSON / Syslog / CEF / LEEF / Drain3)
+|
+v
+Normalization Engine (OCSF-aligned Schema)
+|
++----> Enrichment (IP classification)
+|
++----> Correlation Engine (MITRE ATT&CK mapping)
+|
+v
+Integrity Layer (Hash Chain -> Merkle Tree -> Anchor Ledger)
+|
+v
+Storage (SQLite metadata + Local raw evidence store)
+|
+v
+REST API -> Dashboard / SIEM Export / Data Lake Export
 
-## What's Implemented in this MVP
 
-- **Auto-Detection Ingestion**: Handles raw JSON, Syslog, and CEF ingestion over REST, seamlessly detecting formats on the fly.
-- **Canonical Normalization**: Standardizes divergent incoming events into a unified, predictable canonical schema.
-- **Cryptographic Fingerprinting**: Calculates SHA-256 hashes for both the standalone raw evidence payloads and the normalized records.
-- **Cryptographic Hash Chaining**: Links sequential events together in an unbroken chain mathematically.
-- **Merkle Tree Batching**: Batches events into Merkle trees for efficient bulk validation.
-- **Tamper Verification**: A robust `/verify` system to mathematically prove end-to-end log custody.
-- **Mock Blockchain Anchor**: A simulated anchor mechanism. *(Note: This is a stand-in for Hyperledger Fabric in this MVP. For production, Merkle roots would be committed as actual transactions to a Fabric ledger).*
-- **Real-Time Dashboard**: A fast, zero-reload graphical UI to monitor events and manually trigger verifications.
+## 7. Repository Structure
 
-## How to Demo Tamper Detection
+PULSE-ULPF/
+├── README.md
+├── SUBMISSION_GUIDE.md
+├── submission/
+│ ├── PRESENTATION.md
+│ └── DEMO.md
+├── api/
+├── ingestion/
+├── detection/
+├── parser/
+├── normalization/
+├── enrichment/
+├── integrity/
+├── onboarding/
+├── correlation/
+├── static/
+├── tests/
+├── docs/
+│ └── architecture.md
+├── assets/
+│ └── screenshots/
+│ └── README.md
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+├── .gitignore
+└── LICENSE
 
-1. Start the server and navigate to the **Live Dashboard**.
-2. Run the benchmark or seed script to **ingest a log** (e.g., `python benchmarks/run_benchmark.py --n 1`).
-3. Note the newly ingested log's `event_id` in the dashboard table.
-4. Open the raw storage file locally at `raw/<event_id>.raw` using any text editor.
-5. **Change a single byte** in the file (e.g., alter an IP address or an action) and **Save**.
-6. Back on the dashboard, click the **Verify** button for that exact row.
-7. Watch the verification instantly fail and output a red **TAMPERING DETECTED** badge.
 
-## Architecture Decisions for this MVP
+### What goes where?
+| Item | Location |
+|---|---|
+| Source code | `api/`, `ingestion/`, `detection/`, `parser/`, `normalization/`, `enrichment/`, `integrity/`, `onboarding/`, `correlation/`, `static/` |
+| Architecture / technical documentation | `docs/` |
+| Project screenshots | `assets/screenshots/` |
+| Final PPT / presentation | `submission/` |
+| Demo video link | `submission/DEMO.md` |
+| Project overview | `README.md` |
 
-To fit within the rapid constraints of a hackathon timeline while effectively proving the core cryptographic and normalization concepts, we substituted heavy enterprise infrastructure with simpler agile equivalents:
+## 8. Final Presentation
+See `submission/PRESENTATION.md` for the link/file.
 
-- **Kafka** (message broker) was swapped for synchronous REST API boundaries.
-- **MinIO/S3** (raw evidence object store) was swapped for the local filesystem (`/raw`).
-- **PostgreSQL / OpenSearch** (indexed search & analytical storage) was swapped for a standardized SQLite database (`ulpf.db`).
-- **Hyperledger Fabric** (immutable ledger) was swapped for a mock anchor layer appending to `anchor_log.jsonl`.
+## 9. Demo Video
+See `submission/DEMO.md` for the link.
 
-The full production-grade design utilizing the complete enterprise tech stack is available and mapped out in the project's HLD and LLD documentation.
+## 10. Screenshots / Prototype Photos
+See `assets/screenshots/`.
+
+## 11. Installation
+```bash
+git clone https://github.com/atul-dev26/PULSE
+cd PULSE-ULPF
+pip install -r requirements.txt
+```
+
+Or, using Docker (recommended):
+```bash
+docker-compose up --build
+```
+
+## 12. Run
+```bash
+python -m uvicorn main:app --reload
+```
+Then open:
+- Dashboard: `http://127.0.0.1:8000/dashboard`
+- API Docs: `http://127.0.0.1:8000/docs`
+
+Default login: `admin` / `changeme123` (change before any real deployment).
+
+## 13. Future Scope
+- Migrate metadata storage from SQLite to PostgreSQL, and raw evidence to MinIO/S3, for production-scale deployment
+- Replace the local append-only anchor ledger with a real Hyperledger Fabric permissioned blockchain network
+- Introduce Apache Kafka for horizontal, streaming ingestion at billions-of-events/day scale
+- Add OpenSearch/Elasticsearch for full-text search and analytics over normalized events at scale
+- Expand correlation rules with supervised ML models trained on labeled incident data
+- Integrate with organizational SSO/IAM for production-grade role-based access control
+- Full OCSF JSON-schema validation (current implementation is OCSF-aligned; full spec-validated compliance is a scoped extension)
+
+## Important
+Before submission, ensure the repository is accessible to reviewers. Do not upload passwords, API keys, access tokens, `.env` files containing secrets, or other confidential credentials. The default seeded admin password above is for local development only — never commit real credentials.

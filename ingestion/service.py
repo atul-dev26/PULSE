@@ -31,7 +31,7 @@ from onboarding.models import PendingSourceRow
 from onboarding.discovery import discover_fields
 from onboarding.inference import infer_mappings
 
-RAW_STORAGE_DIR = "raw"
+RAW_STORAGE_DIR = "data/raw"
 # Create raw dir in the same directory as this script execution (ulpf)
 os.makedirs(RAW_STORAGE_DIR, exist_ok=True)
 

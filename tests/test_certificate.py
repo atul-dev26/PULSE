@@ -37,7 +37,7 @@ class TestCertificateTampered:
     def test_tampered_certificate(self, test_client):
         eid = _ingest(test_client, 600)
         
-        raw_path = os.path.join("raw", f"{eid}.raw")
+        raw_path = os.path.join("data", "raw", f"{eid}.raw")
         with open(raw_path, "wb") as f:
             f.write(b'{"src": "TAMPERED", "dest": "10.0.0.99", "action": "allow"}')
             

@@ -56,7 +56,7 @@ def test_tamper_detection(test_client):
     assert v_res.json()["overall"] == "VERIFIED"
 
     # Simulate an attacker modifying raw evidence on disk
-    raw_path = os.path.join("raw", f"{event_id}.raw")
+    raw_path = os.path.join("data", "raw", f"{event_id}.raw")
     with open(raw_path, "wb") as f:
         f.write(b'{"src": "9.9.9.9", "dest": "192.168.1.2", "action": "allow"}')
 

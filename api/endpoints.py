@@ -890,8 +890,8 @@ def get_batch_detail(batch_id: str, db: Session = Depends(get_db)):
     
     anchor_log_entry = None
     try:
-        if os.path.exists("integrity/anchor_log.jsonl"):
-            with open("integrity/anchor_log.jsonl", "r") as f:
+        if os.path.exists("data/integrity/anchor_log.jsonl"):
+            with open("data/integrity/anchor_log.jsonl", "r") as f:
                 for line in f:
                     entry = json.loads(line)
                     if entry.get("batch_id") == batch_id:

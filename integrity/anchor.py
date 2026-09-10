@@ -2,7 +2,8 @@ import json
 import os
 from datetime import datetime
 
-ANCHOR_LOG_FILE = "integrity/anchor_log.jsonl"
+ANCHOR_LOG_FILE = "data/integrity/anchor_log.jsonl"
+os.makedirs(os.path.dirname(ANCHOR_LOG_FILE), exist_ok=True)
 
 def anchor_batch(batch_id: str, merkle_root: str, first_event_id: str, last_event_id: str, event_count: int, fake_tx_id: str):
     """

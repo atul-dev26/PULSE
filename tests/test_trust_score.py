@@ -93,7 +93,7 @@ class TestTrustScoreRawTampered:
         assert clean_score >= 80
 
         # Tamper with the raw file on disk
-        raw_path = os.path.join("raw", f"{eid}.raw")
+        raw_path = os.path.join("data", "raw", f"{eid}.raw")
         with open(raw_path, "wb") as f:
             f.write(b'{"src": "TAMPERED", "dest": "10.0.0.99", "action": "allow"}')
 

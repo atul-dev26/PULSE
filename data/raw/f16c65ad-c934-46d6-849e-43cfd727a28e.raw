@@ -1,0 +1,1 @@
+{"src_ip": "192.168.1.100", "dest_port": 443, "action": "deny", "severity": "high", "vendor": "Cisco", "timestamp": "2023-10-12T10:00:00Z"}

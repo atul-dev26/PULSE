@@ -2,7 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-_db_path = os.environ.get("DATABASE_PATH", "./ulpf.db")
+_db_path = os.environ.get("DATABASE_PATH", "data/ulpf.db")
+os.makedirs(os.path.dirname(_db_path), exist_ok=True)
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{_db_path}"
 
 engine = create_engine(

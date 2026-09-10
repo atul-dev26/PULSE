@@ -20,8 +20,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files
 COPY . .
 
-# Create required data directories and set permissions
-RUN mkdir -p /app/raw /app/integrity /app/data && chmod -R 777 /app/raw /app/integrity /app/data
+# Create the unified persistent data directory (DB + raw evidence + anchor log)
+RUN mkdir -p /app/data/raw /app/data/integrity && chmod -R 777 /app/data
 
 # Expose the API/Dashboard port and UDP Syslog listener port
 EXPOSE 8000

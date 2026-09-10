@@ -150,5 +150,3 @@ Default login: `admin` / `changeme123` (change before any real deployment).
 - Integrate with organizational SSO/IAM for production-grade role-based access control
 - Full OCSF JSON-schema validation (current implementation is OCSF-aligned; full spec-validated compliance is a scoped extension)
 
-## Important
-Before submission, ensure the repository is accessible to reviewers. Do not upload passwords, API keys, access tokens, `.env` files containing secrets, or other confidential credentials. The default seeded admin password above is for local development only — never commit real credentials.

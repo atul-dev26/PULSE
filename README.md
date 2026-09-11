@@ -257,9 +257,9 @@ The complete application is containerized using Docker and Docker Compose, makin
 
 ![Attack Correlation](assets/screenshots/analytics-incident.png)
 
-### Self-Learning Onboarding
+### Report analysis
 
-![Onboarding](assets/screenshots/onboarding.png)
+![Report](assets/screenshots/report.png)
 
 ---
 

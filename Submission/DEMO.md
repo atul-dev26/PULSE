@@ -1,3 +1,3 @@
 # Demo Video
 
-[Paste your YouTube/Google Drive demo video link here]
+https://www.youtube.com/watch?v=C4b2FwhA7Mw

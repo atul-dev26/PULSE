@@ -1,3 +1,3 @@
 # Final Presentation
 
-[Paste your Google Drive/OneDrive PPT link here]
+https://drive.google.com/file/d/1HEk7j5cFaJ8TowUkBu1UZX2LFQftYlXh/view?usp=sharing

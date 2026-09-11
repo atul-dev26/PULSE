@@ -642,7 +642,7 @@ The following interfaces will then be available:
 | **Dashboard**         | `http://127.0.0.1:8000/dashboard` |
 | **API Documentation** | `http://127.0.0.1:8000/docs`      |
 
-If want to login in the deployed application:
+If anyone want to login in the deployed application:
 url : 'https://pulse-ulpf.up.railway.app/login'
 username: admin
 password: changeme123

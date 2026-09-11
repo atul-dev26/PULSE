@@ -2,8 +2,8 @@ import requests
 import json
 import random
 
-API_URL = "https://pulse-production-a7e5.up.railway.app/api/v1/ingest"
-LOGIN_URL = "https://pulse-production-a7e5.up.railway.app/api/v1/auth/login"
+API_URL = "https://pulse-production-7c5a.up.railway.app/api/v1/ingest"
+LOGIN_URL = "https://pulse-production-7c5a.up.railway.app/api/v1/auth/login"
 
 def get_token():
     try:

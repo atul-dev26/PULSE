@@ -644,10 +644,9 @@ The following interfaces will then be available:
 
 If anyone want to login in the deployed application:
 url : 'https://pulse-ulpf.up.railway.app/login'
-username: admin
-password: changeme123
 
-### Default Credentials
+
+### Demo Credentials
 
 ```text
 Username: admin
